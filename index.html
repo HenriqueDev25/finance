@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FinancePro - Controle Financeiro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS para Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Apple Touch Icon -->
@@ -466,8 +467,8 @@
         }
         
         .excel-icon {
-            background: rgba(0, 0, 0, 0.05);
-            color: var(--dark);
+            background: rgba(33, 150, 83, 0.1);
+            color: #219653;
         }
         
         .word-icon {
@@ -867,13 +868,13 @@
         
         /* Loader para ações */
         .loader {
-            display: none;
             width: 20px;
             height: 20px;
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
+            display: none;
         }
         
         @keyframes spin {
@@ -1031,6 +1032,92 @@
             font-size: 0.85rem;
             color: var(--gray);
         }
+        
+        /* Modal de Exportação */
+        .export-modal-content {
+            max-width: 400px;
+        }
+        
+        .export-option {
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid var(--light-gray);
+            background: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        .export-option:last-child {
+            margin-bottom: 0;
+        }
+        
+        .export-option:hover {
+            border-color: var(--dark);
+            transform: translateY(-2px);
+        }
+        
+        .export-option.selected {
+            border-color: var(--dark);
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .export-option h4 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .export-option p {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-left: 34px;
+        }
+        
+        /* Barra de progresso */
+        .progress-bar {
+            height: 4px;
+            background: var(--light-gray);
+            border-radius: 2px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--dark);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        /* Botões de exportação na configuração */
+        .export-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .export-btn {
+            padding: 12px 16px;
+            font-size: 0.9rem;
+        }
+        
+        /* Seção de exportação avançada */
+        .export-filters {
+            background: var(--light-gray);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .export-filters.show {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1157,38 +1244,41 @@
             </form>
         </div>
         
-        <div class="reports-section" id="reportsSection">
-            <h2 class="section-title"><i class="fas fa-file-export"></i> Exportar</h2>
+        <!-- Seção de Relatórios simplificada -->
+        <div class="reports-section" id="reportsSection" style="display: none;">
+            <h2 class="section-title"><i class="fas fa-chart-bar"></i> Relatórios</h2>
             <div class="reports-grid">
-                <div class="report-card" id="excelReport">
-                    <div class="report-icon excel-icon">
-                        <i class="fas fa-file-excel"></i>
+                <div class="report-card">
+                    <div class="report-icon" style="background: rgba(0, 0, 0, 0.05); color: var(--dark);">
+                        <i class="fas fa-chart-pie"></i>
                     </div>
-                    <h3 class="report-title">Excel</h3>
-                    <p class="report-description">Exporte para Excel com todas as transações</p>
-                    <button class="btn btn-primary export-excel-btn">
-                        <i class="fas fa-download"></i>
-                        Exportar Excel
+                    <h3 class="report-title">Análise Mensal</h3>
+                    <p class="report-description">Visualize seus gastos por categoria</p>
+                    <button class="btn btn-secondary" onclick="showSection('transactions')">
+                        <i class="fas fa-eye"></i>
+                        Ver Gráficos
                     </button>
                 </div>
                 
-                <div class="report-card" id="pdfReport">
-                    <div class="report-icon pdf-icon">
-                        <i class="fas fa-file-pdf"></i>
+                <div class="report-card">
+                    <div class="report-icon" style="background: rgba(0, 0, 0, 0.05); color: var(--dark);">
+                        <i class="fas fa-history"></i>
                     </div>
-                    <h3 class="report-title">Relatório</h3>
-                    <p class="report-description">Análise detalhada com gráficos</p>
-                    <button class="btn btn-secondary export-pdf-btn">
-                        <i class="fas fa-file-contract"></i>
-                        Gerar Relatório
+                    <h3 class="report-title">Histórico Completo</h3>
+                    <p class="report-description">Todas as transações registradas</p>
+                    <button class="btn btn-secondary" onclick="showSection('transactions')">
+                        <i class="fas fa-list"></i>
+                        Ver Transações
                     </button>
                 </div>
             </div>
         </div>
         
+        <!-- Seção de Configurações com Exportação -->
         <div class="settings-section" id="settingsSection" style="display: none;">
             <h2 class="section-title"><i class="fas fa-cog"></i> Configurações</h2>
             
+            <!-- Configurações de Tema -->
             <div class="setting-item">
                 <div class="setting-info">
                     <h3><i class="fas fa-moon"></i> Modo Escuro</h3>
@@ -1200,34 +1290,93 @@
                 </label>
             </div>
             
-            <div class="setting-item">
-                <div class="setting-info">
-                    <h3><i class="fas fa-trash"></i> Limpar Histórico</h3>
-                    <p>Apagar todas as transações permanentemente</p>
+            <!-- Seção de Exportação -->
+            <div style="margin: 25px 0;">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--dark);">
+                    <i class="fas fa-file-export" style="color: #219653;"></i> Exportar Dados
+                </h3>
+                
+                <div class="export-buttons">
+                    <button class="btn btn-primary export-btn" id="quickExportBtn">
+                        <i class="fas fa-file-excel"></i> Exportar para Excel (Completo)
+                    </button>
+                    
+                    <button class="btn btn-secondary export-btn" id="advancedExportBtn">
+                        <i class="fas fa-cogs"></i> Exportação Avançada
+                    </button>
+                    
+                    <button class="btn btn-secondary export-btn" id="exportBackupBtn">
+                        <i class="fas fa-download"></i> Backup em JSON
+                    </button>
                 </div>
-                <button class="btn btn-danger" id="clearHistoryBtn" style="padding: 8px 16px; font-size: 0.9rem;">
-                    <i class="fas fa-trash-alt"></i> Limpar
-                </button>
+                
+                <!-- Filtros para exportação avançada -->
+                <div class="export-filters" id="exportFilters">
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-filter"></i> Filtrar por Período
+                        </label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.85rem;">Data Inicial</label>
+                                <input type="date" id="startDate" style="padding: 10px; font-size: 0.9rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem;">Data Final</label>
+                                <input type="date" id="endDate" style="padding: 10px; font-size: 0.9rem;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">
+                            <i class="fas fa-exchange-alt"></i> Filtrar por Tipo
+                        </label>
+                        <div style="display: flex; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="filterIncome" checked>
+                                <span style="font-size: 0.9rem;">Renda</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="filterExpense" checked>
+                                <span style="font-size: 0.9rem;">Despesas</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="exportFilteredBtn" style="width: 100%;">
+                        <i class="fas fa-download"></i> Exportar com Filtros
+                    </button>
+                </div>
             </div>
             
-            <div class="setting-item">
-                <div class="setting-info">
-                    <h3><i class="fas fa-database"></i> Dados de Exemplo</h3>
-                    <p>Carregar transações de exemplo para teste</p>
+            <!-- Gerenciamento de Dados -->
+            <div style="margin: 25px 0;">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--dark);">
+                    <i class="fas fa-database"></i> Gerenciamento de Dados
+                </h3>
+                
+                <div class="export-buttons">
+                    <button class="btn btn-secondary export-btn" id="loadSampleDataBtn">
+                        <i class="fas fa-database"></i> Carregar Dados de Exemplo
+                    </button>
+                    
+                    <button class="btn btn-danger export-btn" id="clearHistoryBtn">
+                        <i class="fas fa-trash-alt"></i> Limpar Todo o Histórico
+                    </button>
                 </div>
-                <button class="btn btn-secondary" id="loadSampleDataBtn" style="padding: 8px 16px; font-size: 0.9rem;">
-                    <i class="fas fa-database"></i> Carregar
-                </button>
             </div>
             
-            <div class="setting-item">
-                <div class="setting-info">
-                    <h3><i class="fas fa-chart-bar"></i> Análise Financeira</h3>
-                    <p>Ver análise detalhada das suas finanças</p>
+            <!-- Informações do Sistema -->
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--light-gray);">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--dark);">
+                    <i class="fas fa-info-circle"></i> Informações
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--gray);">
+                    <p>Transações armazenadas: <span id="transactionCount">0</span></p>
+                    <p>Última atualização: <span id="lastUpdate">-</span></p>
+                    <p>Espaço utilizado: <span id="storageUsed">0 KB</span></p>
                 </div>
-                <button class="btn btn-primary" id="financialAnalysisBtn" style="padding: 8px 16px; font-size: 0.9rem;">
-                    <i class="fas fa-chart-line"></i> Analisar
-                </button>
             </div>
         </div>
         
@@ -1298,6 +1447,55 @@
         </button>
     </div>
     
+    <!-- Modal de Exportação -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content export-modal-content">
+            <button class="close-modal" id="closeExportModal">&times;</button>
+            <h2 class="modal-title">Exportar para Excel</h2>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">Escolha o tipo de exportação:</p>
+                
+                <div class="export-option" data-export-type="full">
+                    <h4><i class="fas fa-file-excel" style="color: #219653;"></i> Exportação Completa</h4>
+                    <p>Todas as transações com formatação profissional</p>
+                </div>
+                
+                <div class="export-option" data-export-type="monthly">
+                    <h4><i class="fas fa-calendar-alt" style="color: #666;"></i> Relatório Mensal</h4>
+                    <p>Transações do mês atual com resumo</p>
+                </div>
+                
+                <div class="export-option" data-export-type="categories">
+                    <h4><i class="fas fa-chart-pie" style="color: #666;"></i> Análise por Categoria</h4>
+                    <p>Relatório detalhado por categorias de gastos</p>
+                </div>
+                
+                <button class="btn btn-primary" id="startExportBtn" style="margin-top: 20px; width: 100%;">
+                    <i class="fas fa-download"></i> Iniciar Exportação
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Progresso da Exportação -->
+    <div class="modal" id="exportProgressModal">
+        <div class="modal-content export-modal-content">
+            <h2 class="modal-title">Exportando para Excel</h2>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <div class="loader" style="margin: 0 auto 20px; display: block;"></div>
+                    <p id="exportStatus">Preparando dados para exportação...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="exportProgress" style="width: 0%"></div>
+                    </div>
+                    <p id="exportDetails" style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
+                        Processando transações...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Modal de Análise -->
     <div class="modal" id="analysisModal">
         <div class="modal-content">
@@ -1313,7 +1511,7 @@
     
     <!-- Modal de Confirmação -->
     <div class="modal" id="confirmModal">
-        <div class="modal-content">
+        <div class="modal-content export-modal-content">
             <h2 class="modal-title">Confirmar Ação</h2>
             <div class="modal-body">
                 <p id="confirmMessage">Tem certeza que deseja realizar esta ação?</p>
@@ -1334,6 +1532,7 @@
         let categoryChart = null;
         let monthlyChart = null;
         let currentSection = 'dashboard';
+        let selectedExportType = 'full';
         
         // Elementos DOM
         const transactionForm = document.getElementById('transactionForm');
@@ -1342,8 +1541,23 @@
         const totalIncomeElement = document.getElementById('totalIncome');
         const totalExpenseElement = document.getElementById('totalExpense');
         const totalBalanceElement = document.getElementById('totalBalance');
-        const exportExcelBtn = document.querySelector('.export-excel-btn');
-        const exportPdfBtn = document.querySelector('.export-pdf-btn');
+        const exportModal = document.getElementById('exportModal');
+        const exportProgressModal = document.getElementById('exportProgressModal');
+        const closeExportModal = document.getElementById('closeExportModal');
+        const exportStatus = document.getElementById('exportStatus');
+        const exportProgress = document.getElementById('exportProgress');
+        const exportDetails = document.getElementById('exportDetails');
+        const quickExportBtn = document.getElementById('quickExportBtn');
+        const advancedExportBtn = document.getElementById('advancedExportBtn');
+        const exportBackupBtn = document.getElementById('exportBackupBtn');
+        const startExportBtn = document.getElementById('startExportBtn');
+        const exportOptions = document.querySelectorAll('.export-option');
+        const exportFilters = document.getElementById('exportFilters');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const filterIncome = document.getElementById('filterIncome');
+        const filterExpense = document.getElementById('filterExpense');
+        const exportFilteredBtn = document.getElementById('exportFilteredBtn');
         const analysisModal = document.getElementById('analysisModal');
         const confirmModal = document.getElementById('confirmModal');
         const closeAnalysisModal = document.getElementById('closeAnalysisModal');
@@ -1352,10 +1566,12 @@
         const darkModeToggle = document.getElementById('darkModeToggle');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
         const loadSampleDataBtn = document.getElementById('loadSampleDataBtn');
-        const financialAnalysisBtn = document.getElementById('financialAnalysisBtn');
         const confirmMessage = document.getElementById('confirmMessage');
         const confirmCancel = document.getElementById('confirmCancel');
         const confirmAction = document.getElementById('confirmAction');
+        const transactionCount = document.getElementById('transactionCount');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const storageUsed = document.getElementById('storageUsed');
         
         // Elementos de navegação
         const navDashboard = document.getElementById('navDashboard');
@@ -1382,6 +1598,11 @@
             const dd = String(today.getDate()).padStart(2, '0');
             document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
             
+            // Configurar datas para filtros
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDateInput.value = firstDay.toISOString().slice(0, 10);
+            endDateInput.value = today.toISOString().slice(0, 10);
+            
             // Carregar transações
             loadTransactions();
             
@@ -1390,6 +1611,9 @@
             
             // Verificar modo escuro
             checkDarkMode();
+            
+            // Atualizar informações do sistema
+            updateSystemInfo();
             
             // Mostrar seção inicial
             showSection('dashboard');
@@ -1401,8 +1625,26 @@
             transactionForm.addEventListener('submit', handleAddTransaction);
             
             // Botões de exportação
-            exportExcelBtn.addEventListener('click', handleExportExcel);
-            exportPdfBtn.addEventListener('click', handleExportPDF);
+            quickExportBtn.addEventListener('click', () => handleExportExcel('full'));
+            advancedExportBtn.addEventListener('click', toggleExportFilters);
+            exportBackupBtn.addEventListener('click', handleExportBackup);
+            exportFilteredBtn.addEventListener('click', () => handleExportExcel('custom'));
+            startExportBtn.addEventListener('click', handleStartExport);
+            
+            // Opções de exportação no modal
+            exportOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remover seleção anterior
+                    exportOptions.forEach(opt => opt.classList.remove('selected'));
+                    
+                    // Selecionar nova opção
+                    this.classList.add('selected');
+                    selectedExportType = this.dataset.exportType;
+                });
+            });
+            
+            // Modal de exportação
+            closeExportModal.addEventListener('click', () => closeModal(exportModal));
             
             // Modal de análise
             closeAnalysisModal.addEventListener('click', () => closeModal(analysisModal));
@@ -1414,7 +1656,6 @@
             darkModeToggle.addEventListener('change', toggleDarkMode);
             clearHistoryBtn.addEventListener('click', () => showClearHistoryConfirm());
             loadSampleDataBtn.addEventListener('click', handleSampleData);
-            financialAnalysisBtn.addEventListener('click', handleAnalysis);
             
             // Navegação inferior
             navDashboard.addEventListener('click', () => showSection('dashboard'));
@@ -1432,6 +1673,8 @@
             
             // Fechar modais ao clicar fora
             window.addEventListener('click', function(event) {
+                if (event.target === exportModal) closeModal(exportModal);
+                if (event.target === exportProgressModal) closeModal(exportProgressModal);
                 if (event.target === analysisModal) closeModal(analysisModal);
                 if (event.target === confirmModal) closeModal(confirmModal);
             });
@@ -1445,6 +1688,315 @@
             
             // Swipe gestures para navegação
             setupSwipeGestures();
+        }
+        
+        // ========== SISTEMA DE EXPORTAÇÃO EXCEL ==========
+        
+        // Alternar visibilidade dos filtros de exportação
+        function toggleExportFilters() {
+            exportFilters.classList.toggle('show');
+        }
+        
+        // Iniciar exportação a partir do modal
+        function handleStartExport() {
+            closeModal(exportModal);
+            handleExportExcel(selectedExportType);
+        }
+        
+        // Exportar para Excel
+        function handleExportExcel(type = 'full') {
+            if (transactions.length === 0) {
+                showToast('Adicione transações primeiro', 'error');
+                return;
+            }
+            
+            // Mostrar modal de progresso
+            openModal(exportProgressModal);
+            exportProgress.style.width = '0%';
+            exportStatus.textContent = 'Preparando dados para exportação...';
+            exportDetails.textContent = 'Processando transações...';
+            
+            // Filtrar transações conforme o tipo
+            let filteredTransactions = [...transactions];
+            
+            switch(type) {
+                case 'monthly':
+                    filteredTransactions = getMonthlyTransactions();
+                    break;
+                case 'categories':
+                    filteredTransactions = getExpenseTransactions();
+                    break;
+                case 'custom':
+                    filteredTransactions = getCustomFilteredTransactions();
+                    break;
+            }
+            
+            // Atualizar progresso
+            exportProgress.style.width = '30%';
+            exportStatus.textContent = 'Calculando totais...';
+            exportDetails.textContent = `Processando ${filteredTransactions.length} transações...`;
+            
+            // Calcular totais
+            setTimeout(() => {
+                const totalIncome = filteredTransactions
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                    
+                const totalExpense = filteredTransactions
+                    .filter(t => t.type === 'expense')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                    
+                const totalBalance = totalIncome - totalExpense;
+                
+                exportProgress.style.width = '60%';
+                exportStatus.textContent = 'Criando planilha...';
+                exportDetails.textContent = 'Formatando dados para Excel...';
+                
+                // Criar dados para exportação
+                const exportData = createExportData(filteredTransactions, totalIncome, totalExpense, totalBalance, type);
+                
+                exportProgress.style.width = '80%';
+                exportStatus.textContent = 'Gerando arquivo...';
+                exportDetails.textContent = 'Preparando download...';
+                
+                // Criar planilha
+                setTimeout(() => {
+                    try {
+                        const worksheet = XLSX.utils.aoa_to_sheet(exportData);
+                        const workbook = XLSX.utils.book_new();
+                        
+                        // Configurar larguras das colunas
+                        const colWidths = [
+                            {wch: 12},  // Data
+                            {wch: 30},  // Descrição
+                            {wch: 15},  // Categoria
+                            {wch: 10},  // Tipo
+                            {wch: 15},  // Valor
+                            {wch: 20}   // Observações
+                        ];
+                        worksheet['!cols'] = colWidths;
+                        
+                        // Adicionar planilha ao workbook
+                        let sheetName = 'Relatório Financeiro';
+                        switch(type) {
+                            case 'monthly': sheetName = 'Relatório Mensal'; break;
+                            case 'categories': sheetName = 'Análise Categorias'; break;
+                            case 'custom': sheetName = 'Relatório Personalizado'; break;
+                        }
+                        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+                        
+                        // Gerar nome do arquivo
+                        const fileName = generateFileName(type);
+                        
+                        exportProgress.style.width = '100%';
+                        exportStatus.textContent = 'Download iniciado!';
+                        exportDetails.textContent = 'Seu arquivo está sendo baixado...';
+                        
+                        // Gerar e fazer download do arquivo
+                        XLSX.writeFile(workbook, fileName);
+                        
+                        // Fechar modal após 2 segundos
+                        setTimeout(() => {
+                            closeModal(exportProgressModal);
+                            showToast(`Excel exportado com sucesso! (${filteredTransactions.length} transações)`, 'success');
+                        }, 2000);
+                        
+                    } catch (error) {
+                        console.error('Erro ao exportar Excel:', error);
+                        closeModal(exportProgressModal);
+                        showToast('Erro ao exportar Excel', 'error');
+                    }
+                }, 500);
+                
+            }, 500);
+        }
+        
+        // Filtrar transações do mês atual
+        function getMonthlyTransactions() {
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            return transactions.filter(t => {
+                const transactionDate = new Date(t.date);
+                return transactionDate >= firstDay && transactionDate <= lastDay;
+            });
+        }
+        
+        // Filtrar apenas despesas (para análise por categoria)
+        function getExpenseTransactions() {
+            return transactions.filter(t => t.type === 'expense');
+        }
+        
+        // Filtrar transações personalizadas
+        function getCustomFilteredTransactions() {
+            let filtered = [...transactions];
+            
+            // Filtrar por data
+            if (startDateInput.value && endDateInput.value) {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                
+                filtered = filtered.filter(t => {
+                    const transactionDate = new Date(t.date);
+                    return transactionDate >= startDate && transactionDate <= endDate;
+                });
+            }
+            
+            // Filtrar por tipo
+            const includeIncome = filterIncome.checked;
+            const includeExpense = filterExpense.checked;
+            
+            if (!includeIncome || !includeExpense) {
+                filtered = filtered.filter(t => {
+                    if (includeIncome && t.type === 'income') return true;
+                    if (includeExpense && t.type === 'expense') return true;
+                    return false;
+                });
+            }
+            
+            return filtered;
+        }
+        
+        // Criar dados para exportação
+        function createExportData(transactions, totalIncome, totalExpense, totalBalance, type) {
+            const data = [];
+            
+            // Cabeçalho do relatório
+            let reportTitle = 'RELATÓRIO FINANCEIRO - FINANCEPRO';
+            switch(type) {
+                case 'monthly': 
+                    reportTitle = 'RELATÓRIO FINANCEIRO MENSAL - FINANCEPRO';
+                    break;
+                case 'categories': 
+                    reportTitle = 'ANÁLISE DE GASTOS POR CATEGORIA - FINANCEPRO';
+                    break;
+                case 'custom': 
+                    reportTitle = 'RELATÓRIO FINANCEIRO PERSONALIZADO - FINANCEPRO';
+                    break;
+            }
+            
+            data.push([reportTitle]);
+            data.push([]);
+            data.push(['Data de Exportação:', new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR')]);
+            data.push(['Total de Transações:', transactions.length]);
+            data.push([]);
+            
+            // Resumo financeiro
+            data.push(['RESUMO FINANCEIRO']);
+            data.push(['Renda Total:', totalIncome.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+            data.push(['Despesas Totais:', totalExpense.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+            data.push(['Saldo Final:', totalBalance.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+            
+            // Análise por categoria (se for do tipo categorias ou completo)
+            if (type === 'categories' || type === 'full') {
+                data.push([]);
+                data.push(['ANÁLISE DE GASTOS POR CATEGORIA']);
+                
+                const categoryTotals = {};
+                transactions
+                    .filter(t => t.type === 'expense')
+                    .forEach(t => {
+                        if (!categoryTotals[t.category]) categoryTotals[t.category] = 0;
+                        categoryTotals[t.category] += t.amount;
+                    });
+                
+                // Ordenar categorias por valor (maior para menor)
+                const sortedCategories = Object.entries(categoryTotals)
+                    .sort(([,a], [,b]) => b - a);
+                
+                sortedCategories.forEach(([category, total]) => {
+                    const percentage = (total / totalExpense * 100).toFixed(1);
+                    const categoryName = getCategoryName(category);
+                    data.push([categoryName, total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), `${percentage}%`]);
+                });
+            }
+            
+            data.push([]);
+            data.push(['DETALHAMENTO DAS TRANSAÇÕES']);
+            data.push(['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)', 'Observações']);
+            
+            // Ordenar transações por data (mais recente primeiro)
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedTransactions.forEach(t => {
+                const typeText = t.type === 'income' ? 'Renda' : 'Despesa';
+                const categoryText = getCategoryName(t.category);
+                const dateText = new Date(t.date).toLocaleDateString('pt-BR');
+                
+                // Adicionar observações especiais
+                let observations = '';
+                if (t.amount > 1000 && t.type === 'expense') observations = 'GASTO ALTO';
+                if (t.category === 'investment') observations = 'INVESTIMENTO';
+                if (t.description.toLowerCase().includes('extra')) observations = 'RENDA EXTRA';
+                
+                data.push([
+                    dateText,
+                    t.description,
+                    categoryText,
+                    typeText,
+                    t.amount,
+                    observations
+                ]);
+            });
+            
+            // Adicionar fórmulas Excel para totais
+            const lastRow = data.length;
+            data.push([]);
+            data.push(['TOTAIS AUTOMÁTICOS (Excel)']);
+            data.push(['Soma Rendas:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})`}]);
+            data.push(['Soma Despesas:', {f: `SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
+            data.push(['Saldo:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})-SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
+            
+            return data;
+        }
+        
+        // Gerar nome do arquivo
+        function generateFileName(type) {
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0, 10);
+            
+            let prefix = 'FinancePro';
+            switch(type) {
+                case 'monthly': 
+                    prefix = 'FinancePro_Mensal';
+                    break;
+                case 'categories': 
+                    prefix = 'FinancePro_Categorias';
+                    break;
+                case 'custom': 
+                    prefix = 'FinancePro_Personalizado';
+                    break;
+            }
+            
+            return `${prefix}_${dateStr}.xlsx`;
+        }
+        
+        // Exportar backup JSON
+        function handleExportBackup() {
+            if (transactions.length === 0) {
+                showToast('Não há dados para exportar', 'error');
+                return;
+            }
+            
+            const dataStr = JSON.stringify({
+                transactions: transactions,
+                exportDate: new Date().toISOString(),
+                totalTransactions: transactions.length,
+                appVersion: '1.0'
+            }, null, 2);
+            
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `FinancePro_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('Backup exportado com sucesso!', 'success');
         }
         
         // ========== FUNÇÕES PRINCIPAIS ==========
@@ -1466,6 +2018,7 @@
         // Salvar transações
         function saveTransactions() {
             localStorage.setItem('financeProTransactions', JSON.stringify(transactions));
+            updateSystemInfo();
         }
         
         // Atualizar toda a interface
@@ -1474,6 +2027,26 @@
             updateSummary();
             updateCharts();
             toggleEmptyState();
+            updateSystemInfo();
+        }
+        
+        // Atualizar informações do sistema
+        function updateSystemInfo() {
+            transactionCount.textContent = transactions.length;
+            
+            if (transactions.length > 0) {
+                const dates = transactions.map(t => new Date(t.date));
+                const latestDate = new Date(Math.max(...dates));
+                lastUpdate.textContent = latestDate.toLocaleDateString('pt-BR');
+            } else {
+                lastUpdate.textContent = '-';
+            }
+            
+            // Calcular espaço utilizado
+            const dataStr = JSON.stringify(transactions);
+            const bytes = new TextEncoder().encode(dataStr).length;
+            const kb = (bytes / 1024).toFixed(2);
+            storageUsed.textContent = `${kb} KB`;
         }
         
         // Mostrar/ocultar estado vazio
@@ -1497,7 +2070,7 @@
             // Mostrar apenas as últimas 10 transações na tabela principal
             const recentTransactions = sortedTransactions.slice(0, 10);
             
-            recentTransactions.forEach((transaction, index) => {
+            recentTransactions.forEach((transaction) => {
                 const row = document.createElement('tr');
                 
                 const dateObj = new Date(transaction.date);
@@ -1902,241 +2475,6 @@
             }
         }
         
-        // Exportar para Excel
-        function handleExportExcel() {
-            if (transactions.length === 0) {
-                showToast('Adicione transações primeiro', 'error');
-                return;
-            }
-            
-            // Mostrar loading
-            const btn = exportExcelBtn;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<div class="loader"></div>';
-            btn.disabled = true;
-            
-            // Processar dados
-            setTimeout(() => {
-                // Calcular totais
-                const totalIncome = transactions
-                    .filter(t => t.type === 'income')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const totalExpense = transactions
-                    .filter(t => t.type === 'expense')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const totalBalance = totalIncome - totalExpense;
-                
-                // Preparar dados para exportação
-                const dataForExport = [
-                    ['RELATÓRIO FINANCEIRO - FINANCEPRO'],
-                    [''],
-                    ['Data de Exportação:', new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR')],
-                    ['Total de Transações:', transactions.length],
-                    [''],
-                    ['RESUMO FINANCEIRO'],
-                    ['Renda Total:', totalIncome.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})],
-                    ['Despesas Totais:', totalExpense.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})],
-                    ['Saldo Final:', totalBalance.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})],
-                    [''],
-                    ['DETALHAMENTO DAS TRANSAÇÕES'],
-                    ['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)']
-                ];
-                
-                // Ordenar transações por data (mais recente primeiro)
-                const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-                
-                sortedTransactions.forEach(t => {
-                    const typeText = t.type === 'income' ? 'Renda' : 'Despesa';
-                    const categoryText = {
-                        'salary': 'Salário',
-                        'investment': 'Investimentos',
-                        'food': 'Alimentação',
-                        'transport': 'Transporte',
-                        'housing': 'Moradia',
-                        'utilities': 'Contas',
-                        'entertainment': 'Lazer',
-                        'health': 'Saúde',
-                        'education': 'Educação',
-                        'other': 'Outros'
-                    }[t.category] || t.category;
-                    
-                    dataForExport.push([
-                        new Date(t.date).toLocaleDateString('pt-BR'),
-                        t.description,
-                        categoryText,
-                        typeText,
-                        t.amount
-                    ]);
-                });
-                
-                // Criar planilha
-                const worksheet = XLSX.utils.aoa_to_sheet(dataForExport);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório Financeiro');
-                
-                // Ajustar largura das colunas
-                const colWidths = [
-                    {wch: 12}, // Data
-                    {wch: 30}, // Descrição
-                    {wch: 15}, // Categoria
-                    {wch: 10}, // Tipo
-                    {wch: 15}  // Valor
-                ];
-                worksheet['!cols'] = colWidths;
-                
-                // Gerar arquivo
-                const fileName = `FinancePro_Relatorio_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                XLSX.writeFile(workbook, fileName);
-                
-                // Restaurar botão
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-                
-                showToast('Excel exportado com sucesso!', 'success');
-            }, 800);
-        }
-        
-        // Exportar PDF (simulação)
-        function handleExportPDF() {
-            if (transactions.length === 0) {
-                showToast('Adicione transações primeiro', 'error');
-                return;
-            }
-            
-            // Mostrar análise em vez de PDF
-            handleAnalysis();
-        }
-        
-        // Análise financeira
-        function handleAnalysis() {
-            if (transactions.length === 0) {
-                showToast('Adicione transações primeiro', 'error');
-                return;
-            }
-            
-            // Gerar análise
-            const analysis = generateFinancialAnalysis();
-            
-            // Preencher modal
-            analysisContent.innerHTML = `
-                <div class="analysis-section">
-                    <h3 class="analysis-title"><i class="fas fa-chart-line"></i> Resumo Geral</h3>
-                    <p>Baseado em ${transactions.length} transações registradas.</p>
-                    <p><strong>Período:</strong> ${getDateRange()}</p>
-                </div>
-                
-                <div class="analysis-section">
-                    <h3 class="analysis-title"><i class="fas fa-exclamation-triangle"></i> Análise de Gastos</h3>
-                    <p style="white-space: pre-wrap;">${analysis.spendingAnalysis}</p>
-                </div>
-                
-                <div class="analysis-section">
-                    <h3 class="analysis-title"><i class="fas fa-lightbulb"></i> Recomendações</h3>
-                    ${analysis.suggestions.map(s => `
-                        <div class="suggestion-item ${s.includes('ALERTA') || s.includes('URGENTE') ? 'danger' : s.includes('acima') ? 'warning' : ''}">
-                            ${s}
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="analysis-section">
-                    <h3 class="analysis-title"><i class="fas fa-flag-checkered"></i> Conclusão</h3>
-                    <p>${analysis.conclusion}</p>
-                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--gray);">
-                        <i class="fas fa-info-circle"></i> Esta análise é automática. Para orientação personalizada, consulte um especialista.
-                    </p>
-                </div>
-            `;
-            
-            openModal(analysisModal);
-        }
-        
-        // Gerar análise financeira
-        function generateFinancialAnalysis() {
-            const totalIncome = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpense = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalBalance = totalIncome - totalExpense;
-            
-            // Análise por categoria
-            const categoryTotals = {};
-            transactions
-                .filter(t => t.type === 'expense')
-                .forEach(t => {
-                    if (!categoryTotals[t.category]) categoryTotals[t.category] = 0;
-                    categoryTotals[t.category] += t.amount;
-                });
-            
-            // Texto de análise
-            let spendingAnalysis = '';
-            Object.keys(categoryTotals).forEach(category => {
-                const value = categoryTotals[category];
-                const percentage = totalExpense > 0 ? ((value / totalExpense) * 100).toFixed(1) : 0;
-                spendingAnalysis += `• ${getCategoryName(category)}: ${percentage}% dos gastos\n`;
-            });
-            
-            if (spendingAnalysis === '') {
-                spendingAnalysis = 'Nenhuma despesa registrada para análise.';
-            }
-            
-            // Sugestões
-            const suggestions = [];
-            
-            if (totalExpense > totalIncome * 0.8) {
-                suggestions.push("ALERTA: Seus gastos estão muito altos (>80% da renda). Recomendo redução urgente.");
-            } else if (totalExpense > totalIncome * 0.6) {
-                suggestions.push("Cuidado: Seus gastos estão acima de 60% da renda. Considere cortar despesas não essenciais.");
-            }
-            
-            if (categoryTotals['food'] && categoryTotals['food'] > totalIncome * 0.2) {
-                suggestions.push("Alimentação está acima de 20% da renda. Considere cozinhar mais em casa.");
-            }
-            
-            if (categoryTotals['housing'] && categoryTotals['housing'] > totalIncome * 0.3) {
-                suggestions.push("Moradia está acima de 30% da renda. Avalie alternativas mais econômicas.");
-            }
-            
-            if (totalBalance > 0) {
-                suggestions.push("Ótimo! Você tem saldo positivo. Considere investir 20% deste valor.");
-                if (totalBalance > totalIncome * 0.2) {
-                    suggestions.push("Excelente! Você está economizando mais de 20% da renda. Continue assim!");
-                }
-            } else if (totalBalance < 0) {
-                suggestions.push("URGENTE: Você está gastando mais do que ganha. Corte despesas não essenciais imediatamente.");
-            } else {
-                suggestions.push("Cuidado! Você está no limite do orçamento. Qualquer imprevisto pode causar déficit.");
-            }
-            
-            // Recomendações gerais
-            suggestions.push("Dica: Monitore pequenos gastos diários - eles somam muito no final do mês.");
-            suggestions.push("Sugestão: Estabeleça metas financeiras claras e realistas.");
-            
-            // Conclusão
-            let conclusion = '';
-            if (totalBalance > totalIncome * 0.2) {
-                conclusion = "Excelente controle financeiro! Você está economizando mais de 20% da sua renda.";
-            } else if (totalBalance > 0) {
-                conclusion = "Bom trabalho! Você está com saldo positivo. Continue controlando seus gastos.";
-            } else if (totalBalance === 0) {
-                conclusion = "Cuidado! Você está no limite. Qualquer imprevisto pode causar déficit.";
-            } else {
-                conclusion = "Situação crítica! Você precisa reduzir gastos ou aumentar renda imediatamente.";
-            }
-            
-            return {
-                spendingAnalysis,
-                suggestions,
-                conclusion
-            };
-        }
-        
         // Obter nome da categoria
         function getCategoryName(category) {
             const map = {
@@ -2152,21 +2490,6 @@
                 'other': 'Outros'
             };
             return map[category] || category;
-        }
-        
-        // Obter período das transações
-        function getDateRange() {
-            if (transactions.length === 0) return 'Sem transações';
-            
-            const dates = transactions.map(t => new Date(t.date));
-            const minDate = new Date(Math.min(...dates));
-            const maxDate = new Date(Math.max(...dates));
-            
-            if (minDate.getTime() === maxDate.getTime()) {
-                return minDate.toLocaleDateString('pt-BR');
-            }
-            
-            return `${minDate.toLocaleDateString('pt-BR')} a ${maxDate.toLocaleDateString('pt-BR')}`;
         }
         
         // ========== CONFIGURAÇÕES ==========
@@ -2405,6 +2728,8 @@
                 case 'settings':
                     settingsSection.style.display = 'block';
                     navSettings.classList.add('active');
+                    // Ocultar filtros de exportação
+                    exportFilters.classList.remove('show');
                     break;
             }
             
