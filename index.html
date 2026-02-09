@@ -1118,6 +1118,79 @@
         .export-filters.show {
             display: block;
         }
+        
+        /* Switch toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: var(--dark);
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        /* Conexão banco de dados status */
+        .db-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+        
+        .db-status.online {
+            background-color: rgba(0, 128, 0, 0.1);
+            color: green;
+        }
+        
+        .db-status.offline {
+            background-color: rgba(255, 0, 0, 0.1);
+            color: red;
+        }
+        
+        .sync-button {
+            margin-left: auto;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
@@ -1149,6 +1222,15 @@
         <!-- Dica de swipe -->
         <div class="swipe-hint">
             <i class="fas fa-arrow-left"></i> Deslize para navegar <i class="fas fa-arrow-right"></i>
+        </div>
+        
+        <!-- Status da conexão com o banco -->
+        <div id="dbStatus" class="db-status" style="display: none;">
+            <span id="dbStatusIcon"><i class="fas fa-database"></i></span>
+            <span id="dbStatusText">Conectando...</span>
+            <button id="dbSyncBtn" class="btn btn-secondary sync-button" style="display: none;">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         </div>
         
         <!-- Dashboard -->
@@ -1278,6 +1360,40 @@
         <div class="settings-section" id="settingsSection" style="display: none;">
             <h2 class="section-title"><i class="fas fa-cog"></i> Configurações</h2>
             
+            <!-- Status do Banco de Dados -->
+            <div id="databaseSettings" style="margin-bottom: 25px;">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--dark);">
+                    <i class="fas fa-database"></i> Banco de Dados
+                </h3>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3><i class="fas fa-cloud"></i> Sincronização em Nuvem</h3>
+                        <p>Ativar sincronização com banco de dados remoto</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cloudSyncToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div id="dbSyncControls" style="display: none;">
+                    <div style="margin: 15px 0;">
+                        <button class="btn btn-secondary export-btn" id="syncToCloudBtn">
+                            <i class="fas fa-upload"></i> Sincronizar para Nuvem
+                        </button>
+                        <button class="btn btn-secondary export-btn" id="syncFromCloudBtn" style="margin-top: 10px;">
+                            <i class="fas fa-download"></i> Sincronizar da Nuvem
+                        </button>
+                    </div>
+                    
+                    <div style="font-size: 0.85rem; color: var(--gray); padding: 10px; background: var(--light-gray); border-radius: 10px;">
+                        <p><i class="fas fa-info-circle"></i> Última sincronização: <span id="lastSyncTime">Nunca</span></p>
+                        <p>Transações na nuvem: <span id="cloudTransactionCount">0</span></p>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Configurações de Tema -->
             <div class="setting-item">
                 <div class="setting-info">
@@ -1374,6 +1490,7 @@
                 </h3>
                 <div style="font-size: 0.85rem; color: var(--gray);">
                     <p>Transações armazenadas: <span id="transactionCount">0</span></p>
+                    <p>Transações na nuvem: <span id="cloudCount">0</span></p>
                     <p>Última atualização: <span id="lastUpdate">-</span></p>
                     <p>Espaço utilizado: <span id="storageUsed">0 KB</span></p>
                 </div>
@@ -1391,6 +1508,7 @@
                             <th>Descrição</th>
                             <th>Categoria</th>
                             <th>Valor</th>
+                            <th>Fonte</th>
                             <th>Ação</th>
                         </tr>
                     </thead>
@@ -1523,6 +1641,25 @@
         </div>
     </div>
     
+    <!-- Modal de Sincronização -->
+    <div class="modal" id="syncModal">
+        <div class="modal-content export-modal-content">
+            <h2 class="modal-title">Sincronizando com Nuvem</h2>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <div class="loader" style="margin: 0 auto 20px; display: block;"></div>
+                    <p id="syncStatus">Conectando ao banco de dados...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="syncProgress" style="width: 0%"></div>
+                    </div>
+                    <p id="syncDetails" style="font-size: 0.9rem; color: var(--gray); margin-top: 10px;">
+                        Iniciando sincronização...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Toast Notifications -->
     <div class="toast" id="toast"></div>
     
@@ -1533,6 +1670,10 @@
         let monthlyChart = null;
         let currentSection = 'dashboard';
         let selectedExportType = 'full';
+        let isCloudSyncEnabled = false;
+        let dbConnectionStatus = 'disconnected';
+        let cloudTransactionsCount = 0;
+        let lastSyncTime = null;
         
         // Elementos DOM
         const transactionForm = document.getElementById('transactionForm');
@@ -1570,6 +1711,7 @@
         const confirmCancel = document.getElementById('confirmCancel');
         const confirmAction = document.getElementById('confirmAction');
         const transactionCount = document.getElementById('transactionCount');
+        const cloudCount = document.getElementById('cloudCount');
         const lastUpdate = document.getElementById('lastUpdate');
         const storageUsed = document.getElementById('storageUsed');
         
@@ -1589,6 +1731,25 @@
         const expenseCard = document.getElementById('expenseCard');
         const balanceCard = document.getElementById('balanceCard');
         
+        // Elementos do banco de dados
+        const dbStatus = document.getElementById('dbStatus');
+        const dbStatusIcon = document.getElementById('dbStatusIcon');
+        const dbStatusText = document.getElementById('dbStatusText');
+        const dbSyncBtn = document.getElementById('dbSyncBtn');
+        const cloudSyncToggle = document.getElementById('cloudSyncToggle');
+        const dbSyncControls = document.getElementById('dbSyncControls');
+        const syncToCloudBtn = document.getElementById('syncToCloudBtn');
+        const syncFromCloudBtn = document.getElementById('syncFromCloudBtn');
+        const lastSyncTimeElement = document.getElementById('lastSyncTime');
+        const cloudTransactionCount = document.getElementById('cloudTransactionCount');
+        const syncModal = document.getElementById('syncModal');
+        const syncStatus = document.getElementById('syncStatus');
+        const syncProgress = document.getElementById('syncProgress');
+        const syncDetails = document.getElementById('syncDetails');
+        
+        // Configuração do backend
+        const BACKEND_URL = 'http://localhost:3000'; // Altere para sua URL do backend
+        
         // ========== INICIALIZAÇÃO ==========
         document.addEventListener('DOMContentLoaded', function() {
             // Configurar data atual
@@ -1603,6 +1764,9 @@
             startDateInput.value = firstDay.toISOString().slice(0, 10);
             endDateInput.value = today.toISOString().slice(0, 10);
             
+            // Carregar configurações
+            loadSettings();
+            
             // Carregar transações
             loadTransactions();
             
@@ -1611,6 +1775,9 @@
             
             // Verificar modo escuro
             checkDarkMode();
+            
+            // Verificar conexão com o banco
+            checkDatabaseConnection();
             
             // Atualizar informações do sistema
             updateSystemInfo();
@@ -1657,6 +1824,12 @@
             clearHistoryBtn.addEventListener('click', () => showClearHistoryConfirm());
             loadSampleDataBtn.addEventListener('click', handleSampleData);
             
+            // Configurações do banco de dados
+            cloudSyncToggle.addEventListener('change', toggleCloudSync);
+            dbSyncBtn.addEventListener('click', checkDatabaseConnection);
+            syncToCloudBtn.addEventListener('click', () => syncTransactions('toCloud'));
+            syncFromCloudBtn.addEventListener('click', () => syncTransactions('fromCloud'));
+            
             // Navegação inferior
             navDashboard.addEventListener('click', () => showSection('dashboard'));
             navAdd.addEventListener('click', () => showSection('add'));
@@ -1677,6 +1850,7 @@
                 if (event.target === exportProgressModal) closeModal(exportProgressModal);
                 if (event.target === analysisModal) closeModal(analysisModal);
                 if (event.target === confirmModal) closeModal(confirmModal);
+                if (event.target === syncModal) closeModal(syncModal);
             });
             
             // Prevenir zoom em inputs no iOS
@@ -1688,6 +1862,274 @@
             
             // Swipe gestures para navegação
             setupSwipeGestures();
+        }
+        
+        // ========== BANCO DE DADOS NEON POSTGRESQL ==========
+        
+        // Verificar conexão com o banco
+        async function checkDatabaseConnection() {
+            try {
+                updateDBStatus('connecting', 'Conectando...');
+                
+                const response = await fetch(`${BACKEND_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    dbConnectionStatus = 'connected';
+                    updateDBStatus('online', 'Conectado ao banco de dados');
+                    
+                    // Se a sincronização em nuvem estiver ativada, verificar contagem
+                    if (isCloudSyncEnabled) {
+                        await getCloudTransactionCount();
+                    }
+                    
+                    return true;
+                } else {
+                    throw new Error('Erro na resposta do servidor');
+                }
+            } catch (error) {
+                console.error('Erro ao conectar ao banco:', error);
+                dbConnectionStatus = 'disconnected';
+                updateDBStatus('offline', 'Banco de dados offline');
+                return false;
+            }
+        }
+        
+        // Atualizar status do banco na interface
+        function updateDBStatus(status, message) {
+            dbStatus.style.display = 'flex';
+            dbStatus.className = `db-status ${status}`;
+            dbStatusText.textContent = message;
+            
+            let icon = 'fa-database';
+            if (status === 'online') icon = 'fa-database';
+            if (status === 'offline') icon = 'fa-database';
+            if (status === 'connecting') icon = 'fa-spinner fa-spin';
+            
+            dbStatusIcon.innerHTML = `<i class="fas ${icon}"></i>`;
+            
+            dbSyncBtn.style.display = status === 'offline' ? 'inline-flex' : 'none';
+        }
+        
+        // Alternar sincronização em nuvem
+        function toggleCloudSync() {
+            isCloudSyncEnabled = cloudSyncToggle.checked;
+            saveSettings();
+            
+            if (isCloudSyncEnabled) {
+                dbSyncControls.style.display = 'block';
+                checkDatabaseConnection();
+                showToast('Sincronização em nuvem ativada', 'success');
+            } else {
+                dbSyncControls.style.display = 'none';
+                showToast('Sincronização em nuvem desativada', 'warning');
+            }
+        }
+        
+        // Sincronizar transações
+        async function syncTransactions(direction) {
+            if (dbConnectionStatus !== 'connected') {
+                const connected = await checkDatabaseConnection();
+                if (!connected) {
+                    showToast('Não é possível conectar ao banco de dados', 'error');
+                    return;
+                }
+            }
+            
+            openModal(syncModal);
+            syncProgress.style.width = '0%';
+            
+            try {
+                if (direction === 'toCloud') {
+                    await syncToCloud();
+                } else {
+                    await syncFromCloud();
+                }
+            } catch (error) {
+                console.error('Erro na sincronização:', error);
+                closeModal(syncModal);
+                showToast('Erro na sincronização: ' + error.message, 'error');
+            }
+        }
+        
+        // Sincronizar para a nuvem
+        async function syncToCloud() {
+            syncStatus.textContent = 'Enviando transações para a nuvem...';
+            syncDetails.textContent = 'Preparando dados...';
+            syncProgress.style.width = '20%';
+            
+            // Obter todas as transações locais
+            const localTransactions = transactions.map(t => ({
+                description: t.description,
+                amount: t.amount,
+                type: t.type,
+                category: t.category,
+                date: t.date,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }));
+            
+            if (localTransactions.length === 0) {
+                syncProgress.style.width = '100%';
+                syncStatus.textContent = 'Nenhuma transação para sincronizar';
+                setTimeout(() => {
+                    closeModal(syncModal);
+                    showToast('Nenhuma transação local para sincronizar', 'info');
+                }, 1500);
+                return;
+            }
+            
+            syncDetails.textContent = `Enviando ${localTransactions.length} transações...`;
+            syncProgress.style.width = '40%';
+            
+            // Enviar para o backend
+            const response = await fetch(`${BACKEND_URL}/transactions/bulk`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ transactions: localTransactions })
+            });
+            
+            syncProgress.style.width = '60%';
+            
+            if (!response.ok) {
+                throw new Error('Erro ao enviar transações para a nuvem');
+            }
+            
+            const result = await response.json();
+            
+            syncProgress.style.width = '80%';
+            syncStatus.textContent = 'Sincronização concluída!';
+            syncDetails.textContent = `${result.count} transações sincronizadas`;
+            
+            // Atualizar última sincronização
+            lastSyncTime = new Date();
+            lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
+            saveSettings();
+            
+            // Atualizar contagem na nuvem
+            await getCloudTransactionCount();
+            
+            syncProgress.style.width = '100%';
+            
+            setTimeout(() => {
+                closeModal(syncModal);
+                showToast('Transações sincronizadas com sucesso!', 'success');
+            }, 1500);
+        }
+        
+        // Sincronizar da nuvem
+        async function syncFromCloud() {
+            syncStatus.textContent = 'Buscando transações da nuvem...';
+            syncDetails.textContent = 'Conectando ao banco de dados...';
+            syncProgress.style.width = '20%';
+            
+            // Buscar transações do backend
+            const response = await fetch(`${BACKEND_URL}/transactions`);
+            
+            syncProgress.style.width = '40%';
+            
+            if (!response.ok) {
+                throw new Error('Erro ao buscar transações da nuvem');
+            }
+            
+            const cloudTransactions = await response.json();
+            
+            syncProgress.style.width = '60%';
+            syncStatus.textContent = 'Processando transações...';
+            syncDetails.textContent = `${cloudTransactions.length} transações encontradas`;
+            
+            // Converter para o formato local
+            const formattedTransactions = cloudTransactions.map(t => ({
+                id: Date.now() + Math.random(), // Gerar ID local
+                description: t.description,
+                amount: parseFloat(t.amount),
+                type: t.type,
+                category: t.category,
+                date: t.date,
+                source: 'cloud' // Marcar como vindo da nuvem
+            }));
+            
+            syncProgress.style.width = '80%';
+            
+            // Mesclar com transações locais (evitar duplicatas)
+            const existingIds = new Set(transactions.map(t => 
+                `${t.description}-${t.amount}-${t.date}`
+            ));
+            
+            const newTransactions = formattedTransactions.filter(t => {
+                const key = `${t.description}-${t.amount}-${t.date}`;
+                return !existingIds.has(key);
+            });
+            
+            // Adicionar novas transações
+            transactions.push(...newTransactions);
+            saveTransactions();
+            updateUI();
+            
+            syncProgress.style.width = '100%';
+            syncStatus.textContent = 'Sincronização concluída!';
+            syncDetails.textContent = `${newTransactions.length} novas transações adicionadas`;
+            
+            // Atualizar última sincronização
+            lastSyncTime = new Date();
+            lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
+            saveSettings();
+            
+            // Atualizar contagem na nuvem
+            await getCloudTransactionCount();
+            
+            setTimeout(() => {
+                closeModal(syncModal);
+                showToast(`${newTransactions.length} transações importadas da nuvem`, 'success');
+            }, 1500);
+        }
+        
+        // Obter contagem de transações na nuvem
+        async function getCloudTransactionCount() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/transactions/count`);
+                if (response.ok) {
+                    const data = await response.json();
+                    cloudTransactionsCount = data.count;
+                    cloudTransactionCount.textContent = cloudTransactionsCount;
+                    cloudCount.textContent = cloudTransactionsCount;
+                }
+            } catch (error) {
+                console.error('Erro ao obter contagem da nuvem:', error);
+            }
+        }
+        
+        // Salvar uma transação individual no banco (se sincronização ativada)
+        async function saveTransactionToCloud(transaction) {
+            if (!isCloudSyncEnabled || dbConnectionStatus !== 'connected') {
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/transactions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: transaction.description,
+                        amount: transaction.amount,
+                        type: transaction.type,
+                        category: transaction.category,
+                        date: transaction.date
+                    })
+                });
+                
+                if (response.ok) {
+                    await getCloudTransactionCount();
+                    return true;
+                }
+            } catch (error) {
+                console.error('Erro ao salvar transação na nuvem:', error);
+            }
+            
+            return false;
         }
         
         // ========== SISTEMA DE EXPORTAÇÃO EXCEL ==========
@@ -2001,6 +2443,38 @@
         
         // ========== FUNÇÕES PRINCIPAIS ==========
         
+        // Carregar configurações
+        function loadSettings() {
+            const storedSettings = localStorage.getItem('financeProSettings');
+            if (storedSettings) {
+                try {
+                    const settings = JSON.parse(storedSettings);
+                    isCloudSyncEnabled = settings.cloudSyncEnabled || false;
+                    lastSyncTime = settings.lastSyncTime ? new Date(settings.lastSyncTime) : null;
+                    
+                    cloudSyncToggle.checked = isCloudSyncEnabled;
+                    if (isCloudSyncEnabled) {
+                        dbSyncControls.style.display = 'block';
+                    }
+                    
+                    if (lastSyncTime) {
+                        lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar configurações:', e);
+                }
+            }
+        }
+        
+        // Salvar configurações
+        function saveSettings() {
+            const settings = {
+                cloudSyncEnabled: isCloudSyncEnabled,
+                lastSyncTime: lastSyncTime ? lastSyncTime.toISOString() : null
+            };
+            localStorage.setItem('financeProSettings', JSON.stringify(settings));
+        }
+        
         // Carregar transações do localStorage
         function loadTransactions() {
             const storedTransactions = localStorage.getItem('financeProTransactions');
@@ -2033,6 +2507,7 @@
         // Atualizar informações do sistema
         function updateSystemInfo() {
             transactionCount.textContent = transactions.length;
+            cloudCount.textContent = cloudTransactionsCount;
             
             if (transactions.length > 0) {
                 const dates = transactions.map(t => new Date(t.date));
@@ -2097,11 +2572,16 @@
                     'other': 'Outros'
                 };
                 
+                const sourceIcon = transaction.source === 'cloud' 
+                    ? '<i class="fas fa-cloud" title="Da nuvem"></i>' 
+                    : '<i class="fas fa-mobile-alt" title="Local"></i>';
+                
                 row.innerHTML = `
                     <td><strong>${formattedDate}</strong></td>
                     <td>${transaction.description}</td>
                     <td><span class="transaction-category ${categoryClass}">${categoryTextMap[transaction.category]}</span></td>
                     <td class="${typeClass}"><strong>${formattedValue}</strong></td>
+                    <td style="text-align: center;">${sourceIcon}</td>
                     <td>
                         <button class="delete-btn" onclick="deleteTransaction(${transaction.id})" title="Excluir">
                             <i class="fas fa-trash-alt"></i>
@@ -2116,7 +2596,7 @@
             if (sortedTransactions.length > 10) {
                 const moreRow = document.createElement('tr');
                 moreRow.innerHTML = `
-                    <td colspan="5" style="text-align: center; padding: 20px; color: var(--gray);">
+                    <td colspan="6" style="text-align: center; padding: 20px; color: var(--gray);">
                         <i class="fas fa-ellipsis-h"></i> 
                         Mais ${sortedTransactions.length - 10} transações no histórico completo
                     </td>
@@ -2415,7 +2895,7 @@
         }
         
         // Adicionar transação
-        function handleAddTransaction(e) {
+        async function handleAddTransaction(e) {
             e.preventDefault();
             
             const description = document.getElementById('description').value.trim();
@@ -2435,19 +2915,30 @@
                 amount,
                 type,
                 category,
-                date
+                date,
+                source: 'local'
             };
             
             transactions.push(transaction);
             saveTransactions();
             updateUI();
             
+            // Salvar na nuvem se a sincronização estiver ativada
+            if (isCloudSyncEnabled) {
+                const savedToCloud = await saveTransactionToCloud(transaction);
+                if (savedToCloud) {
+                    transaction.source = 'cloud';
+                    showToast('Transação salva localmente e na nuvem!', 'success');
+                } else {
+                    showToast('Transação salva localmente (erro na nuvem)', 'warning');
+                }
+            } else {
+                showToast(`${type === 'income' ? 'Renda' : 'Despesa'} adicionada com sucesso!`, 'success');
+            }
+            
             // Resetar formulário
             transactionForm.reset();
             document.getElementById('date').valueAsDate = new Date();
-            
-            // Feedback
-            showToast(`${type === 'income' ? 'Renda' : 'Despesa'} adicionada com sucesso!`, 'success');
             
             // Vibrar se suportado
             if (navigator.vibrate) {
@@ -2459,7 +2950,7 @@
         }
         
         // Excluir transação
-        function deleteTransaction(transactionId) {
+        async function deleteTransaction(transactionId) {
             // Confirmação tátil
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             
@@ -2495,7 +2986,7 @@
         // ========== CONFIGURAÇÕES ==========
         
         // Dados de exemplo
-        function handleSampleData() {
+        async function handleSampleData() {
             closeModal(confirmModal);
             
             if (transactions.length > 0 && !confirm('Substituir dados atuais por dados de exemplo?')) {
@@ -2515,7 +3006,8 @@
                     amount: 3500.00,
                     type: 'income',
                     category: 'salary',
-                    date: today.toISOString().slice(0, 10)
+                    date: today.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 2,
@@ -2523,7 +3015,8 @@
                     amount: 450.00,
                     type: 'expense',
                     category: 'food',
-                    date: today.toISOString().slice(0, 10)
+                    date: today.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 3,
@@ -2531,7 +3024,8 @@
                     amount: 1200.00,
                     type: 'expense',
                     category: 'housing',
-                    date: today.toISOString().slice(0, 10)
+                    date: today.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 4,
@@ -2539,7 +3033,8 @@
                     amount: 200.00,
                     type: 'expense',
                     category: 'transport',
-                    date: today.toISOString().slice(0, 10)
+                    date: today.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 5,
@@ -2547,7 +3042,8 @@
                     amount: 800.00,
                     type: 'income',
                     category: 'salary',
-                    date: oneWeekAgo.toISOString().slice(0, 10)
+                    date: oneWeekAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 6,
@@ -2555,7 +3051,8 @@
                     amount: 120.00,
                     type: 'expense',
                     category: 'food',
-                    date: oneWeekAgo.toISOString().slice(0, 10)
+                    date: oneWeekAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 7,
@@ -2563,7 +3060,8 @@
                     amount: 39.90,
                     type: 'expense',
                     category: 'entertainment',
-                    date: oneWeekAgo.toISOString().slice(0, 10)
+                    date: oneWeekAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 8,
@@ -2571,7 +3069,8 @@
                     amount: 150.00,
                     type: 'expense',
                     category: 'health',
-                    date: twoWeeksAgo.toISOString().slice(0, 10)
+                    date: twoWeeksAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 9,
@@ -2579,7 +3078,8 @@
                     amount: 89.90,
                     type: 'expense',
                     category: 'education',
-                    date: twoWeeksAgo.toISOString().slice(0, 10)
+                    date: twoWeeksAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 },
                 {
                     id: Date.now() + 10,
@@ -2587,7 +3087,8 @@
                     amount: 500.00,
                     type: 'expense',
                     category: 'investment',
-                    date: twoWeeksAgo.toISOString().slice(0, 10)
+                    date: twoWeeksAgo.toISOString().slice(0, 10),
+                    source: 'local'
                 }
             ];
             
