@@ -8,6 +8,50 @@
     <!-- SheetJS para Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, updateDoc, onSnapshot, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDAwlgt9nTGQq3gRSTULlIJw58Cdt1Nb5s",
+            authDomain: "financeiro-e4c33.firebaseapp.com",
+            projectId: "financeiro-e4c33",
+            storageBucket: "financeiro-e4c33.firebasestorage.app",
+            messagingSenderId: "908075758451",
+            appId: "1:908075758451:web:12540b872c88b6b02b8b06",
+            measurementId: "G-B9W177B2XZ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Make Firebase available globally
+        window.firebase = {
+            db,
+            auth,
+            collection,
+            addDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            deleteDoc,
+            doc,
+            updateDoc,
+            onSnapshot,
+            getDoc,
+            setDoc,
+            onAuthStateChanged,
+            signInAnonymously,
+            signOut
+        };
+    </script>
     <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1363,33 +1407,44 @@
             <!-- Status do Banco de Dados -->
             <div id="databaseSettings" style="margin-bottom: 25px;">
                 <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--dark);">
-                    <i class="fas fa-database"></i> Banco de Dados
+                    <i class="fas fa-database"></i> Firebase Firestore
                 </h3>
+                
+                <!-- Informações do Usuário -->
+                <div id="userInfo" style="margin-bottom: 15px; padding: 15px; background: var(--light-gray); border-radius: 10px; display: none;">
+                    <p style="font-size: 0.9rem; color: var(--dark); margin-bottom: 5px;">
+                        <i class="fas fa-user"></i> Usuário: <span id="userId">Carregando...</span>
+                    </p>
+                    <button class="btn btn-secondary" id="logoutBtn" style="margin-top: 10px; padding: 8px 12px;">
+                        <i class="fas fa-sign-out-alt"></i> Sair
+                    </button>
+                </div>
                 
                 <div class="setting-item">
                     <div class="setting-info">
-                        <h3><i class="fas fa-cloud"></i> Sincronização em Nuvem</h3>
-                        <p>Ativar sincronização com banco de dados remoto</p>
+                        <h3><i class="fas fa-cloud"></i> Sincronização em Tempo Real</h3>
+                        <p>Ativar sincronização automática com Firebase</p>
                     </div>
                     <label class="switch">
-                        <input type="checkbox" id="cloudSyncToggle">
+                        <input type="checkbox" id="firebaseSyncToggle" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
                 
-                <div id="dbSyncControls" style="display: none;">
+                <div id="firebaseSyncControls">
                     <div style="margin: 15px 0;">
-                        <button class="btn btn-secondary export-btn" id="syncToCloudBtn">
-                            <i class="fas fa-upload"></i> Sincronizar para Nuvem
+                        <button class="btn btn-secondary export-btn" id="syncToFirebaseBtn">
+                            <i class="fas fa-upload"></i> Forçar Sincronização
                         </button>
-                        <button class="btn btn-secondary export-btn" id="syncFromCloudBtn" style="margin-top: 10px;">
-                            <i class="fas fa-download"></i> Sincronizar da Nuvem
+                        <button class="btn btn-secondary export-btn" id="clearFirebaseBtn" style="margin-top: 10px; background: var(--danger);">
+                            <i class="fas fa-trash"></i> Limpar Nuvem
                         </button>
                     </div>
                     
                     <div style="font-size: 0.85rem; color: var(--gray); padding: 10px; background: var(--light-gray); border-radius: 10px;">
-                        <p><i class="fas fa-info-circle"></i> Última sincronização: <span id="lastSyncTime">Nunca</span></p>
-                        <p>Transações na nuvem: <span id="cloudTransactionCount">0</span></p>
+                        <p><i class="fas fa-info-circle"></i> Última sincronização: <span id="lastSyncTime">Agora</span></p>
+                        <p>Transações na nuvem: <span id="firebaseTransactionCount">0</span></p>
+                        <p>Status: <span id="firebaseStatus">Conectando...</span></p>
                     </div>
                 </div>
             </div>
@@ -1644,11 +1699,11 @@
     <!-- Modal de Sincronização -->
     <div class="modal" id="syncModal">
         <div class="modal-content export-modal-content">
-            <h2 class="modal-title">Sincronizando com Nuvem</h2>
+            <h2 class="modal-title">Sincronizando com Firebase</h2>
             <div class="modal-body">
                 <div style="text-align: center; padding: 20px;">
                     <div class="loader" style="margin: 0 auto 20px; display: block;"></div>
-                    <p id="syncStatus">Conectando ao banco de dados...</p>
+                    <p id="syncStatus">Conectando ao Firebase...</p>
                     <div class="progress-bar">
                         <div class="progress-fill" id="syncProgress" style="width: 0%"></div>
                     </div>
@@ -1664,1649 +1719,1969 @@
     <div class="toast" id="toast"></div>
     
     <script>
-        // ========== VARIÁVEIS GLOBAIS ==========
-        let transactions = [];
-        let categoryChart = null;
-        let monthlyChart = null;
-        let currentSection = 'dashboard';
-        let selectedExportType = 'full';
-        let isCloudSyncEnabled = false;
-        let dbConnectionStatus = 'disconnected';
-        let cloudTransactionsCount = 0;
-        let lastSyncTime = null;
+// ========== VARIÁVEIS GLOBAIS ==========
+let transactions = [];
+let categoryChart = null;
+let monthlyChart = null;
+let currentSection = 'dashboard';
+let selectedExportType = 'full';
+let isFirebaseSyncEnabled = true;
+let firebaseConnectionStatus = 'connecting';
+let firebaseTransactionsCount = 0;
+let lastSyncTime = new Date();
+let currentUserId = null;
+let firebaseUnsubscribe = null;
+
+// Elementos DOM
+const transactionForm = document.getElementById('transactionForm');
+const transactionsBody = document.getElementById('transactionsBody');
+const emptyTransactions = document.getElementById('emptyTransactions');
+const totalIncomeElement = document.getElementById('totalIncome');
+const totalExpenseElement = document.getElementById('totalExpense');
+const totalBalanceElement = document.getElementById('totalBalance');
+const exportModal = document.getElementById('exportModal');
+const exportProgressModal = document.getElementById('exportProgressModal');
+const closeExportModal = document.getElementById('closeExportModal');
+const exportStatus = document.getElementById('exportStatus');
+const exportProgress = document.getElementById('exportProgress');
+const exportDetails = document.getElementById('exportDetails');
+const quickExportBtn = document.getElementById('quickExportBtn');
+const advancedExportBtn = document.getElementById('advancedExportBtn');
+const exportBackupBtn = document.getElementById('exportBackupBtn');
+const startExportBtn = document.getElementById('startExportBtn');
+const exportOptions = document.querySelectorAll('.export-option');
+const exportFilters = document.getElementById('exportFilters');
+const startDateInput = document.getElementById('startDate');
+const endDateInput = document.getElementById('endDate');
+const filterIncome = document.getElementById('filterIncome');
+const filterExpense = document.getElementById('filterExpense');
+const exportFilteredBtn = document.getElementById('exportFilteredBtn');
+const analysisModal = document.getElementById('analysisModal');
+const confirmModal = document.getElementById('confirmModal');
+const closeAnalysisModal = document.getElementById('closeAnalysisModal');
+const analysisContent = document.getElementById('analysisContent');
+const toast = document.getElementById('toast');
+const darkModeToggle = document.getElementById('darkModeToggle');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+const loadSampleDataBtn = document.getElementById('loadSampleDataBtn');
+const confirmMessage = document.getElementById('confirmMessage');
+const confirmCancel = document.getElementById('confirmCancel');
+const confirmAction = document.getElementById('confirmAction');
+const transactionCount = document.getElementById('transactionCount');
+const cloudCount = document.getElementById('cloudCount');
+const lastUpdate = document.getElementById('lastUpdate');
+const storageUsed = document.getElementById('storageUsed');
+
+// Elementos do Firebase
+const dbStatus = document.getElementById('dbStatus');
+const dbStatusIcon = document.getElementById('dbStatusIcon');
+const dbStatusText = document.getElementById('dbStatusText');
+const dbSyncBtn = document.getElementById('dbSyncBtn');
+const firebaseSyncToggle = document.getElementById('firebaseSyncToggle');
+const firebaseSyncControls = document.getElementById('firebaseSyncControls');
+const syncToFirebaseBtn = document.getElementById('syncToFirebaseBtn');
+const clearFirebaseBtn = document.getElementById('clearFirebaseBtn');
+const lastSyncTimeElement = document.getElementById('lastSyncTime');
+const firebaseTransactionCount = document.getElementById('firebaseTransactionCount');
+const firebaseStatus = document.getElementById('firebaseStatus');
+const syncModal = document.getElementById('syncModal');
+const syncStatus = document.getElementById('syncStatus');
+const syncProgress = document.getElementById('syncProgress');
+const syncDetails = document.getElementById('syncDetails');
+const userInfo = document.getElementById('userInfo');
+const userId = document.getElementById('userId');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Elementos de navegação
+const navDashboard = document.getElementById('navDashboard');
+const navAdd = document.getElementById('navAdd');
+const navTransactions = document.getElementById('navTransactions');
+const navSettings = document.getElementById('navSettings');
+const menuBtn = document.getElementById('menuBtn');
+
+// Seções
+const dataEntrySection = document.getElementById('dataEntrySection');
+const transactionsSection = document.getElementById('transactionsSection');
+const reportsSection = document.getElementById('reportsSection');
+const settingsSection = document.getElementById('settingsSection');
+const incomeCard = document.getElementById('incomeCard');
+const expenseCard = document.getElementById('expenseCard');
+const balanceCard = document.getElementById('balanceCard');
+
+// ========== INICIALIZAÇÃO ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar data atual
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    
+    // Configurar datas para filtros
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    startDateInput.value = firstDay.toISOString().slice(0, 10);
+    endDateInput.value = today.toISOString().slice(0, 10);
+    
+    // Carregar configurações
+    loadSettings();
+    
+    // Carregar transações do localStorage
+    loadLocalTransactions();
+    
+    // Inicializar Firebase (com tratamento de erro melhorado)
+    initializeFirebase();
+    
+    // Configurar eventos
+    setupEventListeners();
+    
+    // Verificar modo escuro
+    checkDarkMode();
+    
+    // Atualizar informações do sistema
+    updateSystemInfo();
+    
+    // Mostrar seção inicial
+    showSection('dashboard');
+});
+
+// ========== CONFIGURAR EVENT LISTENERS ==========
+function setupEventListeners() {
+    // Formulário de transação
+    transactionForm.addEventListener('submit', handleAddTransaction);
+    
+    // Botões de exportação
+    quickExportBtn.addEventListener('click', () => handleExportExcel('full'));
+    advancedExportBtn.addEventListener('click', toggleExportFilters);
+    exportBackupBtn.addEventListener('click', handleExportBackup);
+    exportFilteredBtn.addEventListener('click', () => handleExportExcel('custom'));
+    startExportBtn.addEventListener('click', handleStartExport);
+    
+    // Opções de exportação no modal
+    exportOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // Remover seleção anterior
+            exportOptions.forEach(opt => opt.classList.remove('selected'));
+            
+            // Selecionar nova opção
+            this.classList.add('selected');
+            selectedExportType = this.dataset.exportType;
+        });
+    });
+    
+    // Modal de exportação
+    closeExportModal.addEventListener('click', () => closeModal(exportModal));
+    
+    // Modal de análise
+    closeAnalysisModal.addEventListener('click', () => closeModal(analysisModal));
+    
+    // Modal de confirmação
+    confirmCancel.addEventListener('click', () => closeModal(confirmModal));
+    
+    // Configurações
+    darkModeToggle.addEventListener('change', toggleDarkMode);
+    clearHistoryBtn.addEventListener('click', () => showClearHistoryConfirm());
+    loadSampleDataBtn.addEventListener('click', handleSampleData);
+    
+    // Configurações do Firebase
+    firebaseSyncToggle.addEventListener('change', toggleFirebaseSync);
+    dbSyncBtn.addEventListener('click', checkFirebaseConnection);
+    syncToFirebaseBtn.addEventListener('click', () => syncAllToFirebase());
+    clearFirebaseBtn.addEventListener('click', () => showClearFirebaseConfirm());
+    logoutBtn.addEventListener('click', handleLogout);
+    
+    // Navegação inferior
+    navDashboard.addEventListener('click', () => showSection('dashboard'));
+    navAdd.addEventListener('click', () => showSection('add'));
+    navTransactions.addEventListener('click', () => showSection('transactions'));
+    navSettings.addEventListener('click', () => showSection('settings'));
+    
+    // Cards do dashboard (para acesso rápido)
+    incomeCard.addEventListener('click', () => filterByType('income'));
+    expenseCard.addEventListener('click', () => filterByType('expense'));
+    balanceCard.addEventListener('click', () => showSection('transactions'));
+    
+    // Menu button
+    menuBtn.addEventListener('click', () => showSection('settings'));
+    
+    // Fechar modais ao clicar fora
+    window.addEventListener('click', function(event) {
+        if (event.target === exportModal) closeModal(exportModal);
+        if (event.target === exportProgressModal) closeModal(exportProgressModal);
+        if (event.target === analysisModal) closeModal(analysisModal);
+        if (event.target === confirmModal) closeModal(confirmModal);
+        if (event.target === syncModal) closeModal(syncModal);
+    });
+    
+    // Prevenir zoom em inputs no iOS
+    document.addEventListener('touchstart', function(event) {
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') {
+            event.target.style.fontSize = '16px';
+        }
+    }, { passive: true });
+    
+    // Swipe gestures para navegação
+    setupSwipeGestures();
+}
+
+// ========== FIREBASE FIRESTORE ==========
+
+// Inicializar Firebase
+async function initializeFirebase() {
+    try {
+        updateFirebaseStatus('connecting', 'Conectando ao Firebase...');
         
-        // Elementos DOM
-        const transactionForm = document.getElementById('transactionForm');
-        const transactionsBody = document.getElementById('transactionsBody');
-        const emptyTransactions = document.getElementById('emptyTransactions');
-        const totalIncomeElement = document.getElementById('totalIncome');
-        const totalExpenseElement = document.getElementById('totalExpense');
-        const totalBalanceElement = document.getElementById('totalBalance');
-        const exportModal = document.getElementById('exportModal');
-        const exportProgressModal = document.getElementById('exportProgressModal');
-        const closeExportModal = document.getElementById('closeExportModal');
-        const exportStatus = document.getElementById('exportStatus');
-        const exportProgress = document.getElementById('exportProgress');
-        const exportDetails = document.getElementById('exportDetails');
-        const quickExportBtn = document.getElementById('quickExportBtn');
-        const advancedExportBtn = document.getElementById('advancedExportBtn');
-        const exportBackupBtn = document.getElementById('exportBackupBtn');
-        const startExportBtn = document.getElementById('startExportBtn');
-        const exportOptions = document.querySelectorAll('.export-option');
-        const exportFilters = document.getElementById('exportFilters');
-        const startDateInput = document.getElementById('startDate');
-        const endDateInput = document.getElementById('endDate');
-        const filterIncome = document.getElementById('filterIncome');
-        const filterExpense = document.getElementById('filterExpense');
-        const exportFilteredBtn = document.getElementById('exportFilteredBtn');
-        const analysisModal = document.getElementById('analysisModal');
-        const confirmModal = document.getElementById('confirmModal');
-        const closeAnalysisModal = document.getElementById('closeAnalysisModal');
-        const analysisContent = document.getElementById('analysisContent');
-        const toast = document.getElementById('toast');
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
-        const loadSampleDataBtn = document.getElementById('loadSampleDataBtn');
-        const confirmMessage = document.getElementById('confirmMessage');
-        const confirmCancel = document.getElementById('confirmCancel');
-        const confirmAction = document.getElementById('confirmAction');
-        const transactionCount = document.getElementById('transactionCount');
-        const cloudCount = document.getElementById('cloudCount');
-        const lastUpdate = document.getElementById('lastUpdate');
-        const storageUsed = document.getElementById('storageUsed');
+        // Esperar Firebase carregar
+        await waitForFirebase();
         
-        // Elementos de navegação
-        const navDashboard = document.getElementById('navDashboard');
-        const navAdd = document.getElementById('navAdd');
-        const navTransactions = document.getElementById('navTransactions');
-        const navSettings = document.getElementById('navSettings');
-        const menuBtn = document.getElementById('menuBtn');
+        // Verificar se Firebase está disponível
+        if (!window.firebase || !window.firebase.auth) {
+            throw new Error('Firebase não carregou corretamente');
+        }
         
-        // Seções
-        const dataEntrySection = document.getElementById('dataEntrySection');
-        const transactionsSection = document.getElementById('transactionsSection');
-        const reportsSection = document.getElementById('reportsSection');
-        const settingsSection = document.getElementById('settingsSection');
-        const incomeCard = document.getElementById('incomeCard');
-        const expenseCard = document.getElementById('expenseCard');
-        const balanceCard = document.getElementById('balanceCard');
+        // Verificar se Authentication está habilitado
+        try {
+            await window.firebase.signInAnonymously(window.firebase.auth);
+        } catch (authError) {
+            console.warn('Authentication não habilitado:', authError.message);
+            
+            // Criar um ID de usuário local se o Auth não estiver habilitado
+            currentUserId = 'local-user-' + Math.random().toString(36).substr(2, 9);
+            userId.textContent = 'Usuário Local';
+            userInfo.style.display = 'block';
+            
+            firebaseConnectionStatus = 'connected';
+            updateFirebaseStatus('online', 'Trabalhando localmente');
+            showToast('Firebase conectado (modo local)', 'success');
+            
+            // Desabilitar sincronização
+            isFirebaseSyncEnabled = false;
+            firebaseSyncToggle.checked = false;
+            saveSettings();
+            
+            return;
+        }
         
-        // Elementos do banco de dados
-        const dbStatus = document.getElementById('dbStatus');
-        const dbStatusIcon = document.getElementById('dbStatusIcon');
-        const dbStatusText = document.getElementById('dbStatusText');
-        const dbSyncBtn = document.getElementById('dbSyncBtn');
-        const cloudSyncToggle = document.getElementById('cloudSyncToggle');
-        const dbSyncControls = document.getElementById('dbSyncControls');
-        const syncToCloudBtn = document.getElementById('syncToCloudBtn');
-        const syncFromCloudBtn = document.getElementById('syncFromCloudBtn');
-        const lastSyncTimeElement = document.getElementById('lastSyncTime');
-        const cloudTransactionCount = document.getElementById('cloudTransactionCount');
-        const syncModal = document.getElementById('syncModal');
-        const syncStatus = document.getElementById('syncStatus');
-        const syncProgress = document.getElementById('syncProgress');
-        const syncDetails = document.getElementById('syncDetails');
+        // Se chegou aqui, Auth está habilitado
+        await setupFirebaseAuth();
         
-        // Configuração do backend
-        const BACKEND_URL = 'http://localhost:3000'; // Altere para sua URL do backend
+    } catch (error) {
+        console.error('Erro ao inicializar Firebase:', error);
         
-        // ========== INICIALIZAÇÃO ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configurar data atual
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+        // Criar usuário local em caso de erro
+        currentUserId = 'local-user-' + Math.random().toString(36).substr(2, 9);
+        userId.textContent = 'Usuário Local';
+        userInfo.style.display = 'block';
+        
+        updateFirebaseStatus('offline', 'Firebase offline - Trabalhando localmente');
+        showToast('Conexão com Firebase falhou. Trabalhando offline.', 'warning');
+        
+        // Desabilitar sincronização
+        isFirebaseSyncEnabled = false;
+        firebaseSyncToggle.checked = false;
+        saveSettings();
+    }
+}
+
+// Configurar autenticação Firebase
+async function setupFirebaseAuth() {
+    const auth = window.firebase.auth;
+    
+    // Monitorar estado de autenticação
+    window.firebase.onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            userId.textContent = user.uid.substring(0, 8) + '...';
+            userInfo.style.display = 'block';
             
-            // Configurar datas para filtros
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            startDateInput.value = firstDay.toISOString().slice(0, 10);
-            endDateInput.value = today.toISOString().slice(0, 10);
+            firebaseConnectionStatus = 'connected';
+            updateFirebaseStatus('online', 'Firebase conectado');
             
-            // Carregar configurações
-            loadSettings();
+            // Iniciar sincronização em tempo real
+            if (isFirebaseSyncEnabled) {
+                await setupRealtimeSync();
+            }
             
-            // Carregar transações
-            loadTransactions();
+            // Carregar transações do Firebase
+            await loadFromFirebase();
             
-            // Configurar eventos
-            setupEventListeners();
+            showToast('Firebase conectado com sucesso!', 'success');
+        } else {
+            // Tentar login anônimo
+            try {
+                const result = await window.firebase.signInAnonymously(auth);
+                currentUserId = result.user.uid;
+            } catch (error) {
+                console.error('Erro no login anônimo:', error);
+                
+                // Criar usuário local
+                currentUserId = 'local-user-' + Math.random().toString(36).substr(2, 9);
+                userId.textContent = 'Usuário Local';
+                userInfo.style.display = 'block';
+                
+                updateFirebaseStatus('offline', 'Trabalhando localmente');
+            }
+        }
+    });
+}
+
+// Esperar Firebase carregar
+function waitForFirebase() {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 30; // Aumentado para 30 tentativas
+        const checkInterval = setInterval(() => {
+            attempts++;
+            if (window.firebase && window.firebase.db && window.firebase.auth) {
+                clearInterval(checkInterval);
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                reject(new Error('Firebase não carregou a tempo'));
+            }
+        }, 500);
+    });
+}
+
+// Sair da conta
+async function handleLogout() {
+    try {
+        if (window.firebase && window.firebase.auth) {
+            await window.firebase.signOut(window.firebase.auth);
+        }
+        
+        showToast('Sessão encerrada', 'info');
+        userInfo.style.display = 'none';
+        
+        // Parar sincronização em tempo real
+        if (firebaseUnsubscribe) {
+            firebaseUnsubscribe();
+            firebaseUnsubscribe = null;
+        }
+        
+        // Criar novo usuário local
+        currentUserId = 'local-user-' + Math.random().toString(36).substr(2, 9);
+        userId.textContent = 'Usuário Local';
+        userInfo.style.display = 'block';
+        
+        showToast('Modo local ativado', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao sair:', error);
+        showToast('Erro ao sair', 'error');
+    }
+}
+
+// Verificar conexão com Firebase
+async function checkFirebaseConnection() {
+    try {
+        updateFirebaseStatus('connecting', 'Verificando conexão...');
+        
+        if (!window.firebase || !window.firebase.auth) {
+            throw new Error('Firebase não disponível');
+        }
+        
+        const auth = window.firebase.auth;
+        const user = auth.currentUser;
+        
+        if (user) {
+            firebaseConnectionStatus = 'connected';
+            updateFirebaseStatus('online', 'Firebase conectado');
+            return true;
+        } else {
+            // Tentar reconectar
+            await initializeFirebase();
+            return true;
+        }
+        
+    } catch (error) {
+        console.error('Erro ao conectar ao Firebase:', error);
+        firebaseConnectionStatus = 'disconnected';
+        updateFirebaseStatus('offline', 'Firebase offline - Trabalhando localmente');
+        return false;
+    }
+}
+
+// Atualizar status do Firebase na interface
+function updateFirebaseStatus(status, message) {
+    dbStatus.style.display = 'flex';
+    dbStatus.className = `db-status ${status}`;
+    dbStatusText.textContent = message;
+    firebaseStatus.textContent = message;
+    
+    let icon = 'fa-database';
+    if (status === 'online') icon = 'fa-database';
+    if (status === 'offline') icon = 'fa-database';
+    if (status === 'connecting') {
+        icon = 'fa-spinner fa-spin';
+        firebaseStatus.textContent = 'Conectando...';
+    }
+    
+    dbStatusIcon.innerHTML = `<i class="fas ${icon}"></i>`;
+    dbSyncBtn.style.display = status === 'offline' ? 'inline-flex' : 'none';
+    
+    // Atualizar última sincronização
+    if (status === 'online') {
+        lastSyncTime = new Date();
+        lastSyncTimeElement.textContent = 'Agora';
+    }
+}
+
+// Alternar sincronização com Firebase
+function toggleFirebaseSync() {
+    isFirebaseSyncEnabled = firebaseSyncToggle.checked;
+    saveSettings();
+    
+    if (isFirebaseSyncEnabled && firebaseConnectionStatus === 'connected') {
+        // Ativar sincronização
+        setupRealtimeSync();
+        showToast('Sincronização em tempo real ativada', 'success');
+    } else if (!isFirebaseSyncEnabled) {
+        // Desativar sincronização
+        if (firebaseUnsubscribe) {
+            firebaseUnsubscribe();
+            firebaseUnsubscribe = null;
+        }
+        showToast('Sincronização em tempo real desativada', 'warning');
+    } else {
+        showToast('Não é possível ativar sincronização sem conexão com Firebase', 'error');
+        firebaseSyncToggle.checked = false;
+    }
+}
+
+// Configurar sincronização em tempo real
+async function setupRealtimeSync() {
+    if (!currentUserId || !isFirebaseSyncEnabled || !window.firebase) return;
+    
+    // Parar listener anterior se existir
+    if (firebaseUnsubscribe) {
+        firebaseUnsubscribe();
+    }
+    
+    try {
+        const userTransactionsRef = window.firebase.collection(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions`
+        );
+        
+        // Ordenar por data (mais recente primeiro)
+        const q = window.firebase.query(
+            userTransactionsRef,
+            window.firebase.orderBy('date', 'desc')
+        );
+        
+        firebaseUnsubscribe = window.firebase.onSnapshot(q, (snapshot) => {
+            firebaseTransactionsCount = snapshot.size;
+            firebaseTransactionCount.textContent = firebaseTransactionsCount;
+            cloudCount.textContent = firebaseTransactionsCount;
             
-            // Verificar modo escuro
-            checkDarkMode();
+            // Atualizar última sincronização
+            lastSyncTime = new Date();
+            lastSyncTimeElement.textContent = 'Agora';
             
-            // Verificar conexão com o banco
-            checkDatabaseConnection();
+            updateFirebaseStatus('online', 'Sincronizado em tempo real');
             
-            // Atualizar informações do sistema
-            updateSystemInfo();
-            
-            // Mostrar seção inicial
-            showSection('dashboard');
+        }, (error) => {
+            console.error('Erro na sincronização em tempo real:', error);
+            updateFirebaseStatus('offline', 'Erro na sincronização');
+        });
+    } catch (error) {
+        console.error('Erro ao configurar sincronização em tempo real:', error);
+    }
+}
+
+// Carregar transações do Firebase
+async function loadFromFirebase() {
+    try {
+        if (!currentUserId || !window.firebase) return;
+        
+        const userTransactionsRef = window.firebase.collection(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions`
+        );
+        
+        const q = window.firebase.query(
+            userTransactionsRef,
+            window.firebase.orderBy('date', 'desc')
+        );
+        
+        const querySnapshot = await window.firebase.getDocs(q);
+        const firebaseTransactions = [];
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            firebaseTransactions.push({
+                id: doc.id,
+                ...data,
+                source: 'firebase'
+            });
         });
         
-        // ========== CONFIGURAR EVENT LISTENERS ==========
-        function setupEventListeners() {
-            // Formulário de transação
-            transactionForm.addEventListener('submit', handleAddTransaction);
-            
-            // Botões de exportação
-            quickExportBtn.addEventListener('click', () => handleExportExcel('full'));
-            advancedExportBtn.addEventListener('click', toggleExportFilters);
-            exportBackupBtn.addEventListener('click', handleExportBackup);
-            exportFilteredBtn.addEventListener('click', () => handleExportExcel('custom'));
-            startExportBtn.addEventListener('click', handleStartExport);
-            
-            // Opções de exportação no modal
-            exportOptions.forEach(option => {
-                option.addEventListener('click', function() {
-                    // Remover seleção anterior
-                    exportOptions.forEach(opt => opt.classList.remove('selected'));
-                    
-                    // Selecionar nova opção
-                    this.classList.add('selected');
-                    selectedExportType = this.dataset.exportType;
-                });
-            });
-            
-            // Modal de exportação
-            closeExportModal.addEventListener('click', () => closeModal(exportModal));
-            
-            // Modal de análise
-            closeAnalysisModal.addEventListener('click', () => closeModal(analysisModal));
-            
-            // Modal de confirmação
-            confirmCancel.addEventListener('click', () => closeModal(confirmModal));
-            
-            // Configurações
-            darkModeToggle.addEventListener('change', toggleDarkMode);
-            clearHistoryBtn.addEventListener('click', () => showClearHistoryConfirm());
-            loadSampleDataBtn.addEventListener('click', handleSampleData);
-            
-            // Configurações do banco de dados
-            cloudSyncToggle.addEventListener('change', toggleCloudSync);
-            dbSyncBtn.addEventListener('click', checkDatabaseConnection);
-            syncToCloudBtn.addEventListener('click', () => syncTransactions('toCloud'));
-            syncFromCloudBtn.addEventListener('click', () => syncTransactions('fromCloud'));
-            
-            // Navegação inferior
-            navDashboard.addEventListener('click', () => showSection('dashboard'));
-            navAdd.addEventListener('click', () => showSection('add'));
-            navTransactions.addEventListener('click', () => showSection('transactions'));
-            navSettings.addEventListener('click', () => showSection('settings'));
-            
-            // Cards do dashboard (para acesso rápido)
-            incomeCard.addEventListener('click', () => filterByType('income'));
-            expenseCard.addEventListener('click', () => filterByType('expense'));
-            balanceCard.addEventListener('click', () => showSection('transactions'));
-            
-            // Menu button
-            menuBtn.addEventListener('click', () => showSection('settings'));
-            
-            // Fechar modais ao clicar fora
-            window.addEventListener('click', function(event) {
-                if (event.target === exportModal) closeModal(exportModal);
-                if (event.target === exportProgressModal) closeModal(exportProgressModal);
-                if (event.target === analysisModal) closeModal(analysisModal);
-                if (event.target === confirmModal) closeModal(confirmModal);
-                if (event.target === syncModal) closeModal(syncModal);
-            });
-            
-            // Prevenir zoom em inputs no iOS
-            document.addEventListener('touchstart', function(event) {
-                if (event.target.tagName === 'INPUT' || event.target.tagName === 'SELECT') {
-                    event.target.style.fontSize = '16px';
-                }
-            }, { passive: true });
-            
-            // Swipe gestures para navegação
-            setupSwipeGestures();
-        }
+        // Converter para o formato local
+        const formattedTransactions = firebaseTransactions.map(t => ({
+            id: t.id,
+            description: t.description,
+            amount: parseFloat(t.amount),
+            type: t.type,
+            category: t.category,
+            date: t.date,
+            source: 'firebase'
+        }));
         
-        // ========== BANCO DE DADOS NEON POSTGRESQL ==========
-        
-        // Verificar conexão com o banco
-        async function checkDatabaseConnection() {
-            try {
-                updateDBStatus('connecting', 'Conectando...');
-                
-                const response = await fetch(`${BACKEND_URL}/health`);
-                if (response.ok) {
-                    const data = await response.json();
-                    dbConnectionStatus = 'connected';
-                    updateDBStatus('online', 'Conectado ao banco de dados');
-                    
-                    // Se a sincronização em nuvem estiver ativada, verificar contagem
-                    if (isCloudSyncEnabled) {
-                        await getCloudTransactionCount();
-                    }
-                    
-                    return true;
-                } else {
-                    throw new Error('Erro na resposta do servidor');
-                }
-            } catch (error) {
-                console.error('Erro ao conectar ao banco:', error);
-                dbConnectionStatus = 'disconnected';
-                updateDBStatus('offline', 'Banco de dados offline');
-                return false;
-            }
-        }
-        
-        // Atualizar status do banco na interface
-        function updateDBStatus(status, message) {
-            dbStatus.style.display = 'flex';
-            dbStatus.className = `db-status ${status}`;
-            dbStatusText.textContent = message;
-            
-            let icon = 'fa-database';
-            if (status === 'online') icon = 'fa-database';
-            if (status === 'offline') icon = 'fa-database';
-            if (status === 'connecting') icon = 'fa-spinner fa-spin';
-            
-            dbStatusIcon.innerHTML = `<i class="fas ${icon}"></i>`;
-            
-            dbSyncBtn.style.display = status === 'offline' ? 'inline-flex' : 'none';
-        }
-        
-        // Alternar sincronização em nuvem
-        function toggleCloudSync() {
-            isCloudSyncEnabled = cloudSyncToggle.checked;
-            saveSettings();
-            
-            if (isCloudSyncEnabled) {
-                dbSyncControls.style.display = 'block';
-                checkDatabaseConnection();
-                showToast('Sincronização em nuvem ativada', 'success');
-            } else {
-                dbSyncControls.style.display = 'none';
-                showToast('Sincronização em nuvem desativada', 'warning');
-            }
-        }
-        
-        // Sincronizar transações
-        async function syncTransactions(direction) {
-            if (dbConnectionStatus !== 'connected') {
-                const connected = await checkDatabaseConnection();
-                if (!connected) {
-                    showToast('Não é possível conectar ao banco de dados', 'error');
-                    return;
-                }
-            }
-            
-            openModal(syncModal);
-            syncProgress.style.width = '0%';
-            
-            try {
-                if (direction === 'toCloud') {
-                    await syncToCloud();
-                } else {
-                    await syncFromCloud();
-                }
-            } catch (error) {
-                console.error('Erro na sincronização:', error);
-                closeModal(syncModal);
-                showToast('Erro na sincronização: ' + error.message, 'error');
-            }
-        }
-        
-        // Sincronizar para a nuvem
-        async function syncToCloud() {
-            syncStatus.textContent = 'Enviando transações para a nuvem...';
-            syncDetails.textContent = 'Preparando dados...';
-            syncProgress.style.width = '20%';
-            
-            // Obter todas as transações locais
-            const localTransactions = transactions.map(t => ({
-                description: t.description,
-                amount: t.amount,
-                type: t.type,
-                category: t.category,
-                date: t.date,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            }));
-            
-            if (localTransactions.length === 0) {
-                syncProgress.style.width = '100%';
-                syncStatus.textContent = 'Nenhuma transação para sincronizar';
-                setTimeout(() => {
-                    closeModal(syncModal);
-                    showToast('Nenhuma transação local para sincronizar', 'info');
-                }, 1500);
-                return;
-            }
-            
-            syncDetails.textContent = `Enviando ${localTransactions.length} transações...`;
-            syncProgress.style.width = '40%';
-            
-            // Enviar para o backend
-            const response = await fetch(`${BACKEND_URL}/transactions/bulk`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ transactions: localTransactions })
-            });
-            
-            syncProgress.style.width = '60%';
-            
-            if (!response.ok) {
-                throw new Error('Erro ao enviar transações para a nuvem');
-            }
-            
-            const result = await response.json();
-            
-            syncProgress.style.width = '80%';
-            syncStatus.textContent = 'Sincronização concluída!';
-            syncDetails.textContent = `${result.count} transações sincronizadas`;
-            
-            // Atualizar última sincronização
-            lastSyncTime = new Date();
-            lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
-            saveSettings();
-            
-            // Atualizar contagem na nuvem
-            await getCloudTransactionCount();
-            
-            syncProgress.style.width = '100%';
-            
-            setTimeout(() => {
-                closeModal(syncModal);
-                showToast('Transações sincronizadas com sucesso!', 'success');
-            }, 1500);
-        }
-        
-        // Sincronizar da nuvem
-        async function syncFromCloud() {
-            syncStatus.textContent = 'Buscando transações da nuvem...';
-            syncDetails.textContent = 'Conectando ao banco de dados...';
-            syncProgress.style.width = '20%';
-            
-            // Buscar transações do backend
-            const response = await fetch(`${BACKEND_URL}/transactions`);
-            
-            syncProgress.style.width = '40%';
-            
-            if (!response.ok) {
-                throw new Error('Erro ao buscar transações da nuvem');
-            }
-            
-            const cloudTransactions = await response.json();
-            
-            syncProgress.style.width = '60%';
-            syncStatus.textContent = 'Processando transações...';
-            syncDetails.textContent = `${cloudTransactions.length} transações encontradas`;
-            
-            // Converter para o formato local
-            const formattedTransactions = cloudTransactions.map(t => ({
-                id: Date.now() + Math.random(), // Gerar ID local
-                description: t.description,
-                amount: parseFloat(t.amount),
-                type: t.type,
-                category: t.category,
-                date: t.date,
-                source: 'cloud' // Marcar como vindo da nuvem
-            }));
-            
-            syncProgress.style.width = '80%';
-            
-            // Mesclar com transações locais (evitar duplicatas)
-            const existingIds = new Set(transactions.map(t => 
-                `${t.description}-${t.amount}-${t.date}`
-            ));
-            
-            const newTransactions = formattedTransactions.filter(t => {
-                const key = `${t.description}-${t.amount}-${t.date}`;
-                return !existingIds.has(key);
-            });
-            
-            // Adicionar novas transações
-            transactions.push(...newTransactions);
-            saveTransactions();
+        // Substituir transações locais se houver dados no Firebase
+        if (formattedTransactions.length > 0) {
+            transactions = formattedTransactions;
+            saveLocalTransactions();
             updateUI();
             
-            syncProgress.style.width = '100%';
-            syncStatus.textContent = 'Sincronização concluída!';
-            syncDetails.textContent = `${newTransactions.length} novas transações adicionadas`;
-            
-            // Atualizar última sincronização
-            lastSyncTime = new Date();
-            lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
-            saveSettings();
-            
-            // Atualizar contagem na nuvem
-            await getCloudTransactionCount();
-            
-            setTimeout(() => {
-                closeModal(syncModal);
-                showToast(`${newTransactions.length} transações importadas da nuvem`, 'success');
-            }, 1500);
+            showToast(`${formattedTransactions.length} transações carregadas da nuvem`, 'success');
         }
         
-        // Obter contagem de transações na nuvem
-        async function getCloudTransactionCount() {
-            try {
-                const response = await fetch(`${BACKEND_URL}/transactions/count`);
-                if (response.ok) {
-                    const data = await response.json();
-                    cloudTransactionsCount = data.count;
-                    cloudTransactionCount.textContent = cloudTransactionsCount;
-                    cloudCount.textContent = cloudTransactionsCount;
-                }
-            } catch (error) {
-                console.error('Erro ao obter contagem da nuvem:', error);
-            }
-        }
+    } catch (error) {
+        console.error('Erro ao carregar do Firebase:', error);
+        // Não mostrar erro ao usuário - pode ser que ainda não haja dados
+    }
+}
+
+// Sincronizar todas as transações para o Firebase
+async function syncAllToFirebase() {
+    if (!currentUserId || !window.firebase) {
+        showToast('Firebase não disponível para sincronização', 'error');
+        return;
+    }
+    
+    openModal(syncModal);
+    syncProgress.style.width = '0%';
+    syncStatus.textContent = 'Sincronizando com Firebase...';
+    syncDetails.textContent = 'Preparando dados...';
+    
+    try {
+        const userTransactionsRef = window.firebase.collection(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions`
+        );
         
-        // Salvar uma transação individual no banco (se sincronização ativada)
-        async function saveTransactionToCloud(transaction) {
-            if (!isCloudSyncEnabled || dbConnectionStatus !== 'connected') {
-                return false;
-            }
-            
-            try {
-                const response = await fetch(`${BACKEND_URL}/transactions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        description: transaction.description,
-                        amount: transaction.amount,
-                        type: transaction.type,
-                        category: transaction.category,
-                        date: transaction.date
-                    })
-                });
-                
-                if (response.ok) {
-                    await getCloudTransactionCount();
-                    return true;
-                }
-            } catch (error) {
-                console.error('Erro ao salvar transação na nuvem:', error);
-            }
-            
-            return false;
-        }
+        // Primeiro, obter transações existentes no Firebase
+        const existingSnapshot = await window.firebase.getDocs(userTransactionsRef);
         
-        // ========== SISTEMA DE EXPORTAÇÃO EXCEL ==========
+        syncProgress.style.width = '20%';
+        syncDetails.textContent = 'Verificando transações existentes...';
         
-        // Alternar visibilidade dos filtros de exportação
-        function toggleExportFilters() {
-            exportFilters.classList.toggle('show');
-        }
+        // Mapa de IDs existentes
+        const existingIds = {};
+        existingSnapshot.forEach(doc => {
+            existingIds[doc.id] = true;
+        });
         
-        // Iniciar exportação a partir do modal
-        function handleStartExport() {
-            closeModal(exportModal);
-            handleExportExcel(selectedExportType);
-        }
+        syncProgress.style.width = '40%';
+        syncDetails.textContent = `Enviando ${transactions.length} transações...`;
         
-        // Exportar para Excel
-        function handleExportExcel(type = 'full') {
-            if (transactions.length === 0) {
-                showToast('Adicione transações primeiro', 'error');
-                return;
-            }
+        // Enviar transações
+        let uploadedCount = 0;
+        const batchSize = 5; // Reduzido para evitar timeout
+        
+        for (let i = 0; i < transactions.length; i += batchSize) {
+            const batch = transactions.slice(i, i + batchSize);
             
-            // Mostrar modal de progresso
-            openModal(exportProgressModal);
-            exportProgress.style.width = '0%';
-            exportStatus.textContent = 'Preparando dados para exportação...';
-            exportDetails.textContent = 'Processando transações...';
-            
-            // Filtrar transações conforme o tipo
-            let filteredTransactions = [...transactions];
-            
-            switch(type) {
-                case 'monthly':
-                    filteredTransactions = getMonthlyTransactions();
-                    break;
-                case 'categories':
-                    filteredTransactions = getExpenseTransactions();
-                    break;
-                case 'custom':
-                    filteredTransactions = getCustomFilteredTransactions();
-                    break;
-            }
-            
-            // Atualizar progresso
-            exportProgress.style.width = '30%';
-            exportStatus.textContent = 'Calculando totais...';
-            exportDetails.textContent = `Processando ${filteredTransactions.length} transações...`;
-            
-            // Calcular totais
-            setTimeout(() => {
-                const totalIncome = filteredTransactions
-                    .filter(t => t.type === 'income')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const totalExpense = filteredTransactions
-                    .filter(t => t.type === 'expense')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                    
-                const totalBalance = totalIncome - totalExpense;
+            for (const transaction of batch) {
+                // Usar ID local como ID no Firebase
+                const transactionId = transaction.id.toString();
                 
-                exportProgress.style.width = '60%';
-                exportStatus.textContent = 'Criando planilha...';
-                exportDetails.textContent = 'Formatando dados para Excel...';
-                
-                // Criar dados para exportação
-                const exportData = createExportData(filteredTransactions, totalIncome, totalExpense, totalBalance, type);
-                
-                exportProgress.style.width = '80%';
-                exportStatus.textContent = 'Gerando arquivo...';
-                exportDetails.textContent = 'Preparando download...';
-                
-                // Criar planilha
-                setTimeout(() => {
-                    try {
-                        const worksheet = XLSX.utils.aoa_to_sheet(exportData);
-                        const workbook = XLSX.utils.book_new();
+                try {
+                    // Verificar se já existe
+                    if (existingIds[transactionId]) {
+                        // Atualizar
+                        const transactionRef = window.firebase.doc(
+                            window.firebase.db, 
+                            `users/${currentUserId}/transactions/${transactionId}`
+                        );
                         
-                        // Configurar larguras das colunas
-                        const colWidths = [
-                            {wch: 12},  // Data
-                            {wch: 30},  // Descrição
-                            {wch: 15},  // Categoria
-                            {wch: 10},  // Tipo
-                            {wch: 15},  // Valor
-                            {wch: 20}   // Observações
-                        ];
-                        worksheet['!cols'] = colWidths;
-                        
-                        // Adicionar planilha ao workbook
-                        let sheetName = 'Relatório Financeiro';
-                        switch(type) {
-                            case 'monthly': sheetName = 'Relatório Mensal'; break;
-                            case 'categories': sheetName = 'Análise Categorias'; break;
-                            case 'custom': sheetName = 'Relatório Personalizado'; break;
-                        }
-                        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-                        
-                        // Gerar nome do arquivo
-                        const fileName = generateFileName(type);
-                        
-                        exportProgress.style.width = '100%';
-                        exportStatus.textContent = 'Download iniciado!';
-                        exportDetails.textContent = 'Seu arquivo está sendo baixado...';
-                        
-                        // Gerar e fazer download do arquivo
-                        XLSX.writeFile(workbook, fileName);
-                        
-                        // Fechar modal após 2 segundos
-                        setTimeout(() => {
-                            closeModal(exportProgressModal);
-                            showToast(`Excel exportado com sucesso! (${filteredTransactions.length} transações)`, 'success');
-                        }, 2000);
-                        
-                    } catch (error) {
-                        console.error('Erro ao exportar Excel:', error);
-                        closeModal(exportProgressModal);
-                        showToast('Erro ao exportar Excel', 'error');
+                        await window.firebase.updateDoc(transactionRef, {
+                            description: transaction.description,
+                            amount: transaction.amount,
+                            type: transaction.type,
+                            category: transaction.category,
+                            date: transaction.date,
+                            updatedAt: new Date().toISOString()
+                        });
+                    } else {
+                        // Criar novo
+                        await window.firebase.setDoc(
+                            window.firebase.doc(
+                                window.firebase.db, 
+                                `users/${currentUserId}/transactions/${transactionId}`
+                            ),
+                            {
+                                description: transaction.description,
+                                amount: transaction.amount,
+                                type: transaction.type,
+                                category: transaction.category,
+                                date: transaction.date,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            }
+                        );
                     }
-                }, 500);
+                    
+                    uploadedCount++;
+                    
+                } catch (docError) {
+                    console.error(`Erro ao sincronizar transação ${transactionId}:`, docError);
+                }
                 
-            }, 500);
-        }
-        
-        // Filtrar transações do mês atual
-        function getMonthlyTransactions() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            
-            return transactions.filter(t => {
-                const transactionDate = new Date(t.date);
-                return transactionDate >= firstDay && transactionDate <= lastDay;
-            });
-        }
-        
-        // Filtrar apenas despesas (para análise por categoria)
-        function getExpenseTransactions() {
-            return transactions.filter(t => t.type === 'expense');
-        }
-        
-        // Filtrar transações personalizadas
-        function getCustomFilteredTransactions() {
-            let filtered = [...transactions];
-            
-            // Filtrar por data
-            if (startDateInput.value && endDateInput.value) {
-                const startDate = new Date(startDateInput.value);
-                const endDate = new Date(endDateInput.value);
-                
-                filtered = filtered.filter(t => {
-                    const transactionDate = new Date(t.date);
-                    return transactionDate >= startDate && transactionDate <= endDate;
-                });
+                syncProgress.style.width = 40 + (uploadedCount / transactions.length * 40) + '%';
+                syncDetails.textContent = `Enviando ${uploadedCount}/${transactions.length} transações...`;
             }
             
-            // Filtrar por tipo
-            const includeIncome = filterIncome.checked;
-            const includeExpense = filterExpense.checked;
-            
-            if (!includeIncome || !includeExpense) {
-                filtered = filtered.filter(t => {
-                    if (includeIncome && t.type === 'income') return true;
-                    if (includeExpense && t.type === 'expense') return true;
-                    return false;
-                });
-            }
-            
-            return filtered;
+            // Pequena pausa entre lotes
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
+        
+        syncProgress.style.width = '90%';
+        syncStatus.textContent = 'Sincronização concluída!';
+        syncDetails.textContent = `${uploadedCount} transações processadas`;
+        
+        // Atualizar contagem
+        firebaseTransactionsCount = transactions.length;
+        firebaseTransactionCount.textContent = firebaseTransactionsCount;
+        
+        syncProgress.style.width = '100%';
+        
+        setTimeout(() => {
+            closeModal(syncModal);
+            showToast('Transações sincronizadas com sucesso!', 'success');
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Erro na sincronização:', error);
+        closeModal(syncModal);
+        showToast('Erro na sincronização. Trabalhando localmente.', 'error');
+    }
+}
+
+// Salvar uma transação no Firebase
+async function saveTransactionToFirebase(transaction) {
+    if (!currentUserId || !isFirebaseSyncEnabled || !window.firebase) {
+        return false;
+    }
+    
+    try {
+        const transactionRef = window.firebase.doc(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions/${transaction.id}`
+        );
+        
+        await window.firebase.setDoc(transactionRef, {
+            description: transaction.description,
+            amount: transaction.amount,
+            type: transaction.type,
+            category: transaction.category,
+            date: transaction.date,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('Erro ao salvar transação no Firebase:', error);
+        return false;
+    }
+}
+
+// Excluir transação do Firebase
+async function deleteTransactionFromFirebase(transactionId) {
+    if (!currentUserId || !window.firebase) return;
+    
+    try {
+        const transactionRef = window.firebase.doc(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions/${transactionId}`
+        );
+        
+        await window.firebase.deleteDoc(transactionRef);
+        return true;
+    } catch (error) {
+        console.error('Erro ao excluir transação do Firebase:', error);
+        return false;
+    }
+}
+
+// Limpar todas as transações do Firebase
+async function clearFirebaseTransactions() {
+    if (!currentUserId || !window.firebase) return;
+    
+    openModal(syncModal);
+    syncProgress.style.width = '0%';
+    syncStatus.textContent = 'Limpando transações do Firebase...';
+    syncDetails.textContent = 'Preparando...';
+    
+    try {
+        const userTransactionsRef = window.firebase.collection(
+            window.firebase.db, 
+            `users/${currentUserId}/transactions`
+        );
+        
+        const querySnapshot = await window.firebase.getDocs(userTransactionsRef);
+        
+        syncProgress.style.width = '30%';
+        syncDetails.textContent = `Excluindo ${querySnapshot.size} transações...`;
+        
+        // Excluir em lotes
+        let deletedCount = 0;
+        const batchSize = 5;
+        
+        for (let i = 0; i < querySnapshot.docs.length; i += batchSize) {
+            const batch = querySnapshot.docs.slice(i, i + batchSize);
+            const deletePromises = batch.map(doc => window.firebase.deleteDoc(doc.ref));
+            
+            await Promise.all(deletePromises);
+            
+            deletedCount += batch.length;
+            syncProgress.style.width = 30 + (deletedCount / querySnapshot.size * 60) + '%';
+            syncDetails.textContent = `Excluindo ${deletedCount}/${querySnapshot.size} transações...`;
+            
+            // Pequena pausa entre lotes
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        syncProgress.style.width = '100%';
+        syncStatus.textContent = 'Limpeza concluída!';
+        syncDetails.textContent = `${deletedCount} transações excluídas`;
+        
+        // Atualizar contagem
+        firebaseTransactionsCount = 0;
+        firebaseTransactionCount.textContent = '0';
+        
+        setTimeout(() => {
+            closeModal(syncModal);
+            showToast('Firebase limpo com sucesso!', 'success');
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Erro ao limpar Firebase:', error);
+        closeModal(syncModal);
+        showToast('Erro ao limpar Firebase', 'error');
+    }
+}
+
+// Confirmar limpeza do Firebase
+function showClearFirebaseConfirm() {
+    confirmMessage.textContent = 'Tem certeza que deseja apagar TODAS as transações do Firebase? Esta ação não pode ser desfeita.';
+    
+    confirmAction.onclick = function() {
+        clearFirebaseTransactions();
+        closeModal(confirmModal);
+    };
+    
+    openModal(confirmModal);
+}
+
+// ========== SISTEMA DE EXPORTAÇÃO EXCEL ==========
+
+// Alternar visibilidade dos filtros de exportação
+function toggleExportFilters() {
+    exportFilters.classList.toggle('show');
+}
+
+// Iniciar exportação a partir do modal
+function handleStartExport() {
+    closeModal(exportModal);
+    handleExportExcel(selectedExportType);
+}
+
+// Exportar para Excel
+function handleExportExcel(type = 'full') {
+    if (transactions.length === 0) {
+        showToast('Adicione transações primeiro', 'error');
+        return;
+    }
+    
+    // Mostrar modal de progresso
+    openModal(exportProgressModal);
+    exportProgress.style.width = '0%';
+    exportStatus.textContent = 'Preparando dados para exportação...';
+    exportDetails.textContent = 'Processando transações...';
+    
+    // Filtrar transações conforme o tipo
+    let filteredTransactions = [...transactions];
+    
+    switch(type) {
+        case 'monthly':
+            filteredTransactions = getMonthlyTransactions();
+            break;
+        case 'categories':
+            filteredTransactions = getExpenseTransactions();
+            break;
+        case 'custom':
+            filteredTransactions = getCustomFilteredTransactions();
+            break;
+    }
+    
+    // Atualizar progresso
+    exportProgress.style.width = '30%';
+    exportStatus.textContent = 'Calculando totais...';
+    exportDetails.textContent = `Processando ${filteredTransactions.length} transações...`;
+    
+    // Calcular totais
+    setTimeout(() => {
+        const totalIncome = filteredTransactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const totalExpense = filteredTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const totalBalance = totalIncome - totalExpense;
+        
+        exportProgress.style.width = '60%';
+        exportStatus.textContent = 'Criando planilha...';
+        exportDetails.textContent = 'Formatando dados para Excel...';
         
         // Criar dados para exportação
-        function createExportData(transactions, totalIncome, totalExpense, totalBalance, type) {
-            const data = [];
-            
-            // Cabeçalho do relatório
-            let reportTitle = 'RELATÓRIO FINANCEIRO - FINANCEPRO';
-            switch(type) {
-                case 'monthly': 
-                    reportTitle = 'RELATÓRIO FINANCEIRO MENSAL - FINANCEPRO';
-                    break;
-                case 'categories': 
-                    reportTitle = 'ANÁLISE DE GASTOS POR CATEGORIA - FINANCEPRO';
-                    break;
-                case 'custom': 
-                    reportTitle = 'RELATÓRIO FINANCEIRO PERSONALIZADO - FINANCEPRO';
-                    break;
-            }
-            
-            data.push([reportTitle]);
-            data.push([]);
-            data.push(['Data de Exportação:', new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR')]);
-            data.push(['Total de Transações:', transactions.length]);
-            data.push([]);
-            
-            // Resumo financeiro
-            data.push(['RESUMO FINANCEIRO']);
-            data.push(['Renda Total:', totalIncome.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
-            data.push(['Despesas Totais:', totalExpense.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
-            data.push(['Saldo Final:', totalBalance.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
-            
-            // Análise por categoria (se for do tipo categorias ou completo)
-            if (type === 'categories' || type === 'full') {
-                data.push([]);
-                data.push(['ANÁLISE DE GASTOS POR CATEGORIA']);
-                
-                const categoryTotals = {};
-                transactions
-                    .filter(t => t.type === 'expense')
-                    .forEach(t => {
-                        if (!categoryTotals[t.category]) categoryTotals[t.category] = 0;
-                        categoryTotals[t.category] += t.amount;
-                    });
-                
-                // Ordenar categorias por valor (maior para menor)
-                const sortedCategories = Object.entries(categoryTotals)
-                    .sort(([,a], [,b]) => b - a);
-                
-                sortedCategories.forEach(([category, total]) => {
-                    const percentage = (total / totalExpense * 100).toFixed(1);
-                    const categoryName = getCategoryName(category);
-                    data.push([categoryName, total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), `${percentage}%`]);
-                });
-            }
-            
-            data.push([]);
-            data.push(['DETALHAMENTO DAS TRANSAÇÕES']);
-            data.push(['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)', 'Observações']);
-            
-            // Ordenar transações por data (mais recente primeiro)
-            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            sortedTransactions.forEach(t => {
-                const typeText = t.type === 'income' ? 'Renda' : 'Despesa';
-                const categoryText = getCategoryName(t.category);
-                const dateText = new Date(t.date).toLocaleDateString('pt-BR');
-                
-                // Adicionar observações especiais
-                let observations = '';
-                if (t.amount > 1000 && t.type === 'expense') observations = 'GASTO ALTO';
-                if (t.category === 'investment') observations = 'INVESTIMENTO';
-                if (t.description.toLowerCase().includes('extra')) observations = 'RENDA EXTRA';
-                
-                data.push([
-                    dateText,
-                    t.description,
-                    categoryText,
-                    typeText,
-                    t.amount,
-                    observations
-                ]);
-            });
-            
-            // Adicionar fórmulas Excel para totais
-            const lastRow = data.length;
-            data.push([]);
-            data.push(['TOTAIS AUTOMÁTICOS (Excel)']);
-            data.push(['Soma Rendas:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})`}]);
-            data.push(['Soma Despesas:', {f: `SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
-            data.push(['Saldo:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})-SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
-            
-            return data;
-        }
+        const exportData = createExportData(filteredTransactions, totalIncome, totalExpense, totalBalance, type);
         
-        // Gerar nome do arquivo
-        function generateFileName(type) {
-            const today = new Date();
-            const dateStr = today.toISOString().slice(0, 10);
-            
-            let prefix = 'FinancePro';
-            switch(type) {
-                case 'monthly': 
-                    prefix = 'FinancePro_Mensal';
-                    break;
-                case 'categories': 
-                    prefix = 'FinancePro_Categorias';
-                    break;
-                case 'custom': 
-                    prefix = 'FinancePro_Personalizado';
-                    break;
-            }
-            
-            return `${prefix}_${dateStr}.xlsx`;
-        }
+        exportProgress.style.width = '80%';
+        exportStatus.textContent = 'Gerando arquivo...';
+        exportDetails.textContent = 'Preparando download...';
         
-        // Exportar backup JSON
-        function handleExportBackup() {
-            if (transactions.length === 0) {
-                showToast('Não há dados para exportar', 'error');
-                return;
-            }
-            
-            const dataStr = JSON.stringify({
-                transactions: transactions,
-                exportDate: new Date().toISOString(),
-                totalTransactions: transactions.length,
-                appVersion: '1.0'
-            }, null, 2);
-            
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `FinancePro_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showToast('Backup exportado com sucesso!', 'success');
-        }
-        
-        // ========== FUNÇÕES PRINCIPAIS ==========
-        
-        // Carregar configurações
-        function loadSettings() {
-            const storedSettings = localStorage.getItem('financeProSettings');
-            if (storedSettings) {
-                try {
-                    const settings = JSON.parse(storedSettings);
-                    isCloudSyncEnabled = settings.cloudSyncEnabled || false;
-                    lastSyncTime = settings.lastSyncTime ? new Date(settings.lastSyncTime) : null;
-                    
-                    cloudSyncToggle.checked = isCloudSyncEnabled;
-                    if (isCloudSyncEnabled) {
-                        dbSyncControls.style.display = 'block';
-                    }
-                    
-                    if (lastSyncTime) {
-                        lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
-                    }
-                } catch (e) {
-                    console.error('Erro ao carregar configurações:', e);
+        // Criar planilha
+        setTimeout(() => {
+            try {
+                const worksheet = XLSX.utils.aoa_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                
+                // Configurar larguras das colunas
+                const colWidths = [
+                    {wch: 12},  // Data
+                    {wch: 30},  // Descrição
+                    {wch: 15},  // Categoria
+                    {wch: 10},  // Tipo
+                    {wch: 15},  // Valor
+                    {wch: 20}   // Observações
+                ];
+                worksheet['!cols'] = colWidths;
+                
+                // Adicionar planilha ao workbook
+                let sheetName = 'Relatório Financeiro';
+                switch(type) {
+                    case 'monthly': sheetName = 'Relatório Mensal'; break;
+                    case 'categories': sheetName = 'Análise Categorias'; break;
+                    case 'custom': sheetName = 'Relatório Personalizado'; break;
                 }
+                XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+                
+                // Gerar nome do arquivo
+                const fileName = generateFileName(type);
+                
+                exportProgress.style.width = '100%';
+                exportStatus.textContent = 'Download iniciado!';
+                exportDetails.textContent = 'Seu arquivo está sendo baixado...';
+                
+                // Gerar e fazer download do arquivo
+                XLSX.writeFile(workbook, fileName);
+                
+                // Fechar modal após 2 segundos
+                setTimeout(() => {
+                    closeModal(exportProgressModal);
+                    showToast(`Excel exportado com sucesso! (${filteredTransactions.length} transações)`, 'success');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Erro ao exportar Excel:', error);
+                closeModal(exportProgressModal);
+                showToast('Erro ao exportar Excel', 'error');
             }
-        }
+        }, 500);
         
-        // Salvar configurações
-        function saveSettings() {
-            const settings = {
-                cloudSyncEnabled: isCloudSyncEnabled,
-                lastSyncTime: lastSyncTime ? lastSyncTime.toISOString() : null
-            };
-            localStorage.setItem('financeProSettings', JSON.stringify(settings));
-        }
+    }, 500);
+}
+
+// Filtrar transações do mês atual
+function getMonthlyTransactions() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    return transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= firstDay && transactionDate <= lastDay;
+    });
+}
+
+// Filtrar apenas despesas (para análise por categoria)
+function getExpenseTransactions() {
+    return transactions.filter(t => t.type === 'expense');
+}
+
+// Filtrar transações personalizadas
+function getCustomFilteredTransactions() {
+    let filtered = [...transactions];
+    
+    // Filtrar por data
+    if (startDateInput.value && endDateInput.value) {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
         
-        // Carregar transações do localStorage
-        function loadTransactions() {
-            const storedTransactions = localStorage.getItem('financeProTransactions');
-            if (storedTransactions) {
-                try {
-                    transactions = JSON.parse(storedTransactions);
-                } catch (e) {
-                    console.error('Erro ao carregar transações:', e);
-                    transactions = [];
-                }
+        filtered = filtered.filter(t => {
+            const transactionDate = new Date(t.date);
+            return transactionDate >= startDate && transactionDate <= endDate;
+        });
+    }
+    
+    // Filtrar por tipo
+    const includeIncome = filterIncome.checked;
+    const includeExpense = filterExpense.checked;
+    
+    if (!includeIncome || !includeExpense) {
+        filtered = filtered.filter(t => {
+            if (includeIncome && t.type === 'income') return true;
+            if (includeExpense && t.type === 'expense') return true;
+            return false;
+        });
+    }
+    
+    return filtered;
+}
+
+// Criar dados para exportação
+function createExportData(transactions, totalIncome, totalExpense, totalBalance, type) {
+    const data = [];
+    
+    // Cabeçalho do relatório
+    let reportTitle = 'RELATÓRIO FINANCEIRO - FINANCEPRO';
+    switch(type) {
+        case 'monthly': 
+            reportTitle = 'RELATÓRIO FINANCEIRO MENSAL - FINANCEPRO';
+            break;
+        case 'categories': 
+            reportTitle = 'ANÁLISE DE GASTOS POR CATEGORIA - FINANCEPRO';
+            break;
+        case 'custom': 
+            reportTitle = 'RELATÓRIO FINANCEIRO PERSONALIZADO - FINANCEPRO';
+            break;
+    }
+    
+    data.push([reportTitle]);
+    data.push([]);
+    data.push(['Data de Exportação:', new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR')]);
+    data.push(['Total de Transações:', transactions.length]);
+    data.push([]);
+    
+    // Resumo financeiro
+    data.push(['RESUMO FINANCEIRO']);
+    data.push(['Renda Total:', totalIncome.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+    data.push(['Despesas Totais:', totalExpense.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+    data.push(['Saldo Final:', totalBalance.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})]);
+    
+    // Análise por categoria (se for do tipo categorias ou completo)
+    if (type === 'categories' || type === 'full') {
+        data.push([]);
+        data.push(['ANÁLISE DE GASTOS POR CATEGORIA']);
+        
+        const categoryTotals = {};
+        transactions
+            .filter(t => t.type === 'expense')
+            .forEach(t => {
+                if (!categoryTotals[t.category]) categoryTotals[t.category] = 0;
+                categoryTotals[t.category] += t.amount;
+            });
+        
+        // Ordenar categorias por valor (maior para menor)
+        const sortedCategories = Object.entries(categoryTotals)
+            .sort(([,a], [,b]) => b - a);
+        
+        sortedCategories.forEach(([category, total]) => {
+            const percentage = (total / totalExpense * 100).toFixed(1);
+            const categoryName = getCategoryName(category);
+            data.push([categoryName, total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}), `${percentage}%`]);
+        });
+    }
+    
+    data.push([]);
+    data.push(['DETALHAMENTO DAS TRANSAÇÕES']);
+    data.push(['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor (R$)', 'Observações']);
+    
+    // Ordenar transações por data (mais recente primeiro)
+    const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    sortedTransactions.forEach(t => {
+        const typeText = t.type === 'income' ? 'Renda' : 'Despesa';
+        const categoryText = getCategoryName(t.category);
+        const dateText = new Date(t.date).toLocaleDateString('pt-BR');
+        
+        // Adicionar observações especiais
+        let observations = '';
+        if (t.amount > 1000 && t.type === 'expense') observations = 'GASTO ALTO';
+        if (t.category === 'investment') observations = 'INVESTIMENTO';
+        if (t.description.toLowerCase().includes('extra')) observations = 'RENDA EXTRA';
+        
+        data.push([
+            dateText,
+            t.description,
+            categoryText,
+            typeText,
+            t.amount,
+            observations
+        ]);
+    });
+    
+    // Adicionar fórmulas Excel para totais
+    const lastRow = data.length;
+    data.push([]);
+    data.push(['TOTAIS AUTOMÁTICOS (Excel)']);
+    data.push(['Soma Rendas:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})`}]);
+    data.push(['Soma Despesas:', {f: `SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
+    data.push(['Saldo:', {f: `SUMIF(D2:D${lastRow},"Renda",E2:E${lastRow})-SUMIF(D2:D${lastRow},"Despesa",E2:E${lastRow})`}]);
+    
+    return data;
+}
+
+// Gerar nome do arquivo
+function generateFileName(type) {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(0, 10);
+    
+    let prefix = 'FinancePro';
+    switch(type) {
+        case 'monthly': 
+            prefix = 'FinancePro_Mensal';
+            break;
+        case 'categories': 
+            prefix = 'FinancePro_Categorias';
+            break;
+        case 'custom': 
+            prefix = 'FinancePro_Personalizado';
+            break;
+    }
+    
+    return `${prefix}_${dateStr}.xlsx`;
+}
+
+// Exportar backup JSON
+function handleExportBackup() {
+    if (transactions.length === 0) {
+        showToast('Não há dados para exportar', 'error');
+        return;
+    }
+    
+    const dataStr = JSON.stringify({
+        transactions: transactions,
+        exportDate: new Date().toISOString(),
+        totalTransactions: transactions.length,
+        appVersion: '1.0'
+    }, null, 2);
+    
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `FinancePro_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('Backup exportado com sucesso!', 'success');
+}
+
+// ========== FUNÇÕES PRINCIPAIS ==========
+
+// Carregar configurações
+function loadSettings() {
+    const storedSettings = localStorage.getItem('financeProSettings');
+    if (storedSettings) {
+        try {
+            const settings = JSON.parse(storedSettings);
+            isFirebaseSyncEnabled = settings.firebaseSyncEnabled !== undefined ? settings.firebaseSyncEnabled : true;
+            lastSyncTime = settings.lastSyncTime ? new Date(settings.lastSyncTime) : null;
+            
+            firebaseSyncToggle.checked = isFirebaseSyncEnabled;
+            
+            if (lastSyncTime) {
+                lastSyncTimeElement.textContent = lastSyncTime.toLocaleString('pt-BR');
             }
-            updateUI();
+        } catch (e) {
+            console.error('Erro ao carregar configurações:', e);
         }
-        
-        // Salvar transações
-        function saveTransactions() {
-            localStorage.setItem('financeProTransactions', JSON.stringify(transactions));
-            updateSystemInfo();
+    }
+}
+
+// Salvar configurações
+function saveSettings() {
+    const settings = {
+        firebaseSyncEnabled: isFirebaseSyncEnabled,
+        lastSyncTime: lastSyncTime ? lastSyncTime.toISOString() : null
+    };
+    localStorage.setItem('financeProSettings', JSON.stringify(settings));
+}
+
+// Carregar transações do localStorage
+function loadLocalTransactions() {
+    const storedTransactions = localStorage.getItem('financeProTransactions');
+    if (storedTransactions) {
+        try {
+            transactions = JSON.parse(storedTransactions);
+        } catch (e) {
+            console.error('Erro ao carregar transações:', e);
+            transactions = [];
         }
+    }
+    updateUI();
+}
+
+// Salvar transações no localStorage
+function saveLocalTransactions() {
+    localStorage.setItem('financeProTransactions', JSON.stringify(transactions));
+    updateSystemInfo();
+}
+
+// Atualizar toda a interface
+function updateUI() {
+    updateTransactionTable();
+    updateSummary();
+    updateCharts();
+    toggleEmptyState();
+    updateSystemInfo();
+}
+
+// Atualizar informações do sistema
+function updateSystemInfo() {
+    transactionCount.textContent = transactions.length;
+    cloudCount.textContent = firebaseTransactionsCount;
+    
+    if (transactions.length > 0) {
+        const dates = transactions.map(t => new Date(t.date));
+        const latestDate = new Date(Math.max(...dates));
+        lastUpdate.textContent = latestDate.toLocaleDateString('pt-BR');
+    } else {
+        lastUpdate.textContent = '-';
+    }
+    
+    // Calcular espaço utilizado
+    const dataStr = JSON.stringify(transactions);
+    const bytes = new TextEncoder().encode(dataStr).length;
+    const kb = (bytes / 1024).toFixed(2);
+    storageUsed.textContent = `${kb} KB`;
+}
+
+// Mostrar/ocultar estado vazio
+function toggleEmptyState() {
+    if (transactions.length === 0) {
+        emptyTransactions.style.display = 'block';
+        document.querySelector('table').style.display = 'none';
+    } else {
+        emptyTransactions.style.display = 'none';
+        document.querySelector('table').style.display = 'table';
+    }
+}
+
+// Atualizar tabela de transações
+function updateTransactionTable() {
+    transactionsBody.innerHTML = '';
+    
+    // Ordenar por data (mais recente primeiro)
+    const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Mostrar apenas as últimas 10 transações na tabela principal
+    const recentTransactions = sortedTransactions.slice(0, 10);
+    
+    recentTransactions.forEach((transaction) => {
+        const row = document.createElement('tr');
         
-        // Atualizar toda a interface
-        function updateUI() {
-            updateTransactionTable();
-            updateSummary();
-            updateCharts();
-            toggleEmptyState();
-            updateSystemInfo();
-        }
+        const dateObj = new Date(transaction.date);
+        const formattedDate = dateObj.toLocaleDateString('pt-BR');
         
-        // Atualizar informações do sistema
-        function updateSystemInfo() {
-            transactionCount.textContent = transactions.length;
-            cloudCount.textContent = cloudTransactionsCount;
-            
-            if (transactions.length > 0) {
-                const dates = transactions.map(t => new Date(t.date));
-                const latestDate = new Date(Math.max(...dates));
-                lastUpdate.textContent = latestDate.toLocaleDateString('pt-BR');
-            } else {
-                lastUpdate.textContent = '-';
+        const categoryClass = `category-${transaction.category}`;
+        const typeClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
+        
+        const formattedValue = transaction.amount.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+        
+        const categoryTextMap = {
+            'salary': 'Salário',
+            'investment': 'Investimentos',
+            'food': 'Alimentação',
+            'transport': 'Transporte',
+            'housing': 'Moradia',
+            'utilities': 'Contas',
+            'entertainment': 'Lazer',
+            'health': 'Saúde',
+            'education': 'Educação',
+            'other': 'Outros'
+        };
+        
+        const sourceIcon = transaction.source === 'firebase' 
+            ? '<i class="fas fa-cloud" title="Firebase"></i>' 
+            : '<i class="fas fa-mobile-alt" title="Local"></i>';
+        
+        row.innerHTML = `
+            <td><strong>${formattedDate}</strong></td>
+            <td>${transaction.description}</td>
+            <td><span class="transaction-category ${categoryClass}">${categoryTextMap[transaction.category]}</span></td>
+            <td class="${typeClass}"><strong>${formattedValue}</strong></td>
+            <td style="text-align: center;">${sourceIcon}</td>
+            <td>
+                <button class="delete-btn" onclick="deleteTransaction(${transaction.id})" title="Excluir">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </td>
+        `;
+        
+        transactionsBody.appendChild(row);
+    });
+    
+    // Se houver mais transações, mostrar contador
+    if (sortedTransactions.length > 10) {
+        const moreRow = document.createElement('tr');
+        moreRow.innerHTML = `
+            <td colspan="6" style="text-align: center; padding: 20px; color: var(--gray);">
+                <i class="fas fa-ellipsis-h"></i> 
+                Mais ${sortedTransactions.length - 10} transações no histórico completo
+            </td>
+        `;
+        transactionsBody.appendChild(moreRow);
+    }
+}
+
+// Atualizar resumo financeiro
+function updateSummary() {
+    const totalIncome = transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const totalExpense = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+        
+    const totalBalance = totalIncome - totalExpense;
+    
+    totalIncomeElement.textContent = totalIncome.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+    
+    totalExpenseElement.textContent = totalExpense.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+    
+    totalBalanceElement.textContent = totalBalance.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+    
+    // Atualizar cor do saldo
+    if (totalBalance < 0) {
+        totalBalanceElement.style.color = 'var(--danger)';
+    } else if (totalBalance === 0) {
+        totalBalanceElement.style.color = 'var(--warning)';
+    } else {
+        totalBalanceElement.style.color = 'var(--success)';
+    }
+    
+    // Animação nos cards
+    animateCardValue(totalIncomeElement, totalIncome);
+    animateCardValue(totalExpenseElement, totalExpense);
+    animateCardValue(totalBalanceElement, totalBalance);
+}
+
+// Animação de valores nos cards
+function animateCardValue(element, newValue) {
+    element.style.transform = 'scale(1.1)';
+    element.style.transition = 'transform 0.3s ease';
+    
+    setTimeout(() => {
+        element.style.transform = 'scale(1)';
+    }, 300);
+}
+
+// Atualizar gráficos
+function updateCharts() {
+    updateCategoryChart();
+    updateMonthlyChart();
+}
+
+// Gráfico de categorias
+function updateCategoryChart() {
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    
+    const categoryTotals = {};
+    transactions
+        .filter(t => t.type === 'expense')
+        .forEach(transaction => {
+            if (!categoryTotals[transaction.category]) {
+                categoryTotals[transaction.category] = 0;
             }
-            
-            // Calcular espaço utilizado
-            const dataStr = JSON.stringify(transactions);
-            const bytes = new TextEncoder().encode(dataStr).length;
-            const kb = (bytes / 1024).toFixed(2);
-            storageUsed.textContent = `${kb} KB`;
-        }
+            categoryTotals[transaction.category] += transaction.amount;
+        });
+    
+    if (Object.keys(categoryTotals).length === 0) {
+        if (categoryChart) categoryChart.destroy();
         
-        // Mostrar/ocultar estado vazio
-        function toggleEmptyState() {
-            if (transactions.length === 0) {
-                emptyTransactions.style.display = 'block';
-                document.querySelector('table').style.display = 'none';
-            } else {
-                emptyTransactions.style.display = 'none';
-                document.querySelector('table').style.display = 'table';
-            }
-        }
-        
-        // Atualizar tabela de transações
-        function updateTransactionTable() {
-            transactionsBody.innerHTML = '';
-            
-            // Ordenar por data (mais recente primeiro)
-            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-            
-            // Mostrar apenas as últimas 10 transações na tabela principal
-            const recentTransactions = sortedTransactions.slice(0, 10);
-            
-            recentTransactions.forEach((transaction) => {
-                const row = document.createElement('tr');
-                
-                const dateObj = new Date(transaction.date);
-                const formattedDate = dateObj.toLocaleDateString('pt-BR');
-                
-                const categoryClass = `category-${transaction.category}`;
-                const typeClass = transaction.type === 'income' ? 'transaction-income' : 'transaction-expense';
-                
-                const formattedValue = transaction.amount.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL'
-                });
-                
-                const categoryTextMap = {
-                    'salary': 'Salário',
-                    'investment': 'Investimentos',
-                    'food': 'Alimentação',
-                    'transport': 'Transporte',
-                    'housing': 'Moradia',
-                    'utilities': 'Contas',
-                    'entertainment': 'Lazer',
-                    'health': 'Saúde',
-                    'education': 'Educação',
-                    'other': 'Outros'
-                };
-                
-                const sourceIcon = transaction.source === 'cloud' 
-                    ? '<i class="fas fa-cloud" title="Da nuvem"></i>' 
-                    : '<i class="fas fa-mobile-alt" title="Local"></i>';
-                
-                row.innerHTML = `
-                    <td><strong>${formattedDate}</strong></td>
-                    <td>${transaction.description}</td>
-                    <td><span class="transaction-category ${categoryClass}">${categoryTextMap[transaction.category]}</span></td>
-                    <td class="${typeClass}"><strong>${formattedValue}</strong></td>
-                    <td style="text-align: center;">${sourceIcon}</td>
-                    <td>
-                        <button class="delete-btn" onclick="deleteTransaction(${transaction.id})" title="Excluir">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </td>
-                `;
-                
-                transactionsBody.appendChild(row);
-            });
-            
-            // Se houver mais transações, mostrar contador
-            if (sortedTransactions.length > 10) {
-                const moreRow = document.createElement('tr');
-                moreRow.innerHTML = `
-                    <td colspan="6" style="text-align: center; padding: 20px; color: var(--gray);">
-                        <i class="fas fa-ellipsis-h"></i> 
-                        Mais ${sortedTransactions.length - 10} transações no histórico completo
-                    </td>
-                `;
-                transactionsBody.appendChild(moreRow);
-            }
-        }
-        
-        // Atualizar resumo financeiro
-        function updateSummary() {
-            const totalIncome = transactions
-                .filter(t => t.type === 'income')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalExpense = transactions
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalBalance = totalIncome - totalExpense;
-            
-            totalIncomeElement.textContent = totalIncome.toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            });
-            
-            totalExpenseElement.textContent = totalExpense.toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            });
-            
-            totalBalanceElement.textContent = totalBalance.toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL'
-            });
-            
-            // Atualizar cor do saldo
-            if (totalBalance < 0) {
-                totalBalanceElement.style.color = 'var(--danger)';
-            } else if (totalBalance === 0) {
-                totalBalanceElement.style.color = 'var(--warning)';
-            } else {
-                totalBalanceElement.style.color = 'var(--success)';
-            }
-            
-            // Animação nos cards
-            animateCardValue(totalIncomeElement, totalIncome);
-            animateCardValue(totalExpenseElement, totalExpense);
-            animateCardValue(totalBalanceElement, totalBalance);
-        }
-        
-        // Animação de valores nos cards
-        function animateCardValue(element, newValue) {
-            element.style.transform = 'scale(1.1)';
-            element.style.transition = 'transform 0.3s ease';
-            
-            setTimeout(() => {
-                element.style.transform = 'scale(1)';
-            }, 300);
-        }
-        
-        // Atualizar gráficos
-        function updateCharts() {
-            updateCategoryChart();
-            updateMonthlyChart();
-        }
-        
-        // Gráfico de categorias
-        function updateCategoryChart() {
-            const ctx = document.getElementById('categoryChart').getContext('2d');
-            
-            const categoryTotals = {};
-            transactions
-                .filter(t => t.type === 'expense')
-                .forEach(transaction => {
-                    if (!categoryTotals[transaction.category]) {
-                        categoryTotals[transaction.category] = 0;
-                    }
-                    categoryTotals[transaction.category] += transaction.amount;
-                });
-            
-            if (Object.keys(categoryTotals).length === 0) {
-                if (categoryChart) categoryChart.destroy();
-                
-                categoryChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Sem dados'],
-                        datasets: [{
-                            data: [1],
-                            backgroundColor: ['#e9ecef'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false }
-                        },
-                        cutout: '70%'
-                    }
-                });
-                return;
-            }
-            
-            const categoryLabels = {
-                'salary': 'Salário',
-                'investment': 'Investimentos',
-                'food': 'Alimentação',
-                'transport': 'Transporte',
-                'housing': 'Moradia',
-                'utilities': 'Contas',
-                'entertainment': 'Lazer',
-                'health': 'Saúde',
-                'education': 'Educação',
-                'other': 'Outros'
-            };
-            
-            // Cores em tons de cinza para preto e branco
-            const categoryColors = {
-                'salary': '#000000',
-                'investment': '#333333',
-                'food': '#666666',
-                'transport': '#888888',
-                'housing': '#444444',
-                'utilities': '#555555',
-                'entertainment': '#777777',
-                'health': '#222222',
-                'education': '#999999',
-                'other': '#aaaaaa'
-            };
-            
-            const labels = Object.keys(categoryTotals).map(cat => categoryLabels[cat]);
-            const data = Object.values(categoryTotals);
-            const backgroundColors = Object.keys(categoryTotals).map(cat => categoryColors[cat] || '#cccccc');
-            
-            if (categoryChart) categoryChart.destroy();
-            
-            categoryChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: backgroundColors,
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const value = context.raw;
-                                    return `${context.label}: ${value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}`;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-        
-        // Gráfico mensal
-        function updateMonthlyChart() {
-            const ctx = document.getElementById('monthlyChart').getContext('2d');
-            
-            // Agrupar por mês (últimos 6 meses)
-            const monthlyData = {};
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-            
-            transactions.forEach(transaction => {
-                const date = new Date(transaction.date);
-                if (date < sixMonthsAgo) return;
-                
-                const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-                
-                if (!monthlyData[monthKey]) {
-                    monthlyData[monthKey] = { income: 0, expense: 0 };
-                }
-                
-                if (transaction.type === 'income') {
-                    monthlyData[monthKey].income += transaction.amount;
-                } else {
-                    monthlyData[monthKey].expense += transaction.amount;
-                }
-            });
-            
-            // Ordenar por mês
-            const sortedMonths = Object.keys(monthlyData).sort();
-            const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            
-            const labels = sortedMonths.map(key => {
-                const [year, month] = key.split('-');
-                return `${monthNames[parseInt(month)]}`;
-            });
-            
-            const incomeData = sortedMonths.map(key => monthlyData[key].income);
-            const expenseData = sortedMonths.map(key => monthlyData[key].expense);
-            
-            if (monthlyChart) monthlyChart.destroy();
-            
-            // Se não houver dados suficientes
-            if (sortedMonths.length < 2) {
-                monthlyChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Jan', 'Fev', 'Mar'],
-                        datasets: [
-                            {
-                                label: 'Renda',
-                                data: [0, 0, 0],
-                                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                                borderColor: '#000000',
-                                borderWidth: 1
-                            },
-                            {
-                                label: 'Despesas',
-                                data: [0, 0, 0],
-                                backgroundColor: 'rgba(102, 102, 102, 0.5)',
-                                borderColor: '#666666',
-                                borderWidth: 1
-                            }
-                        ]
-                    },
-                    options: getChartOptions()
-                });
-                return;
-            }
-            
-            monthlyChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Renda',
-                            data: incomeData,
-                            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                            borderColor: '#000000',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Despesas',
-                            data: expenseData,
-                            backgroundColor: 'rgba(102, 102, 102, 0.7)',
-                            borderColor: '#666666',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: getChartOptions()
-            });
-        }
-        
-        // Opções do gráfico
-        function getChartOptions() {
-            return {
+        categoryChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Sem dados'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#e9ecef'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { maxRotation: 0 }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                if (value >= 1000) return 'R$' + (value/1000).toFixed(0) + 'k';
-                                return 'R$' + value;
-                            }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                cutout: '70%'
+            }
+        });
+        return;
+    }
+    
+    const categoryLabels = {
+        'salary': 'Salário',
+        'investment': 'Investimentos',
+        'food': 'Alimentação',
+        'transport': 'Transporte',
+        'housing': 'Moradia',
+        'utilities': 'Contas',
+        'entertainment': 'Lazer',
+        'health': 'Saúde',
+        'education': 'Educação',
+        'other': 'Outros'
+    };
+    
+    // Cores em tons de cinza para preto e branco
+    const categoryColors = {
+        'salary': '#000000',
+        'investment': '#333333',
+        'food': '#666666',
+        'transport': '#888888',
+        'housing': '#444444',
+        'utilities': '#555555',
+        'entertainment': '#777777',
+        'health': '#222222',
+        'education': '#999999',
+        'other': '#aaaaaa'
+    };
+    
+    const labels = Object.keys(categoryTotals).map(cat => categoryLabels[cat]);
+    const data = Object.values(categoryTotals);
+    const backgroundColors = Object.keys(categoryTotals).map(cat => categoryColors[cat] || '#cccccc');
+    
+    if (categoryChart) categoryChart.destroy();
+    
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderWidth: 0,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            return `${context.label}: ${value.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}`;
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { boxWidth: 12 }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+// Gráfico mensal
+function updateMonthlyChart() {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    
+    // Agrupar por mês (últimos 6 meses)
+    const monthlyData = {};
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    
+    transactions.forEach(transaction => {
+        const date = new Date(transaction.date);
+        if (date < sixMonthsAgo) return;
+        
+        const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+        
+        if (!monthlyData[monthKey]) {
+            monthlyData[monthKey] = { income: 0, expense: 0 };
+        }
+        
+        if (transaction.type === 'income') {
+            monthlyData[monthKey].income += transaction.amount;
+        } else {
+            monthlyData[monthKey].expense += transaction.amount;
+        }
+    });
+    
+    // Ordenar por mês
+    const sortedMonths = Object.keys(monthlyData).sort();
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    
+    const labels = sortedMonths.map(key => {
+        const [year, month] = key.split('-');
+        return `${monthNames[parseInt(month)]}`;
+    });
+    
+    const incomeData = sortedMonths.map(key => monthlyData[key].income);
+    const expenseData = sortedMonths.map(key => monthlyData[key].expense);
+    
+    if (monthlyChart) monthlyChart.destroy();
+    
+    // Se não houver dados suficientes
+    if (sortedMonths.length < 2) {
+        monthlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan', 'Fev', 'Mar'],
+                datasets: [
+                    {
+                        label: 'Renda',
+                        data: [0, 0, 0],
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        borderColor: '#000000',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Despesas',
+                        data: [0, 0, 0],
+                        backgroundColor: 'rgba(102, 102, 102, 0.5)',
+                        borderColor: '#666666',
+                        borderWidth: 1
                     }
+                ]
+            },
+            options: getChartOptions()
+        });
+        return;
+    }
+    
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Renda',
+                    data: incomeData,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    borderColor: '#000000',
+                    borderWidth: 1
                 },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
+                {
+                    label: 'Despesas',
+                    data: expenseData,
+                    backgroundColor: 'rgba(102, 102, 102, 0.7)',
+                    borderColor: '#666666',
+                    borderWidth: 1
                 }
-            };
-        }
-        
-        // Adicionar transação
-        async function handleAddTransaction(e) {
-            e.preventDefault();
-            
-            const description = document.getElementById('description').value.trim();
-            const amount = parseFloat(document.getElementById('amount').value);
-            const type = document.getElementById('type').value;
-            const category = document.getElementById('category').value;
-            const date = document.getElementById('date').value;
-            
-            if (!description || isNaN(amount) || amount <= 0) {
-                showToast('Preencha todos os campos corretamente', 'error');
-                return;
-            }
-            
-            const transaction = {
-                id: Date.now(),
-                description,
-                amount,
-                type,
-                category,
-                date,
-                source: 'local'
-            };
-            
-            transactions.push(transaction);
-            saveTransactions();
-            updateUI();
-            
-            // Salvar na nuvem se a sincronização estiver ativada
-            if (isCloudSyncEnabled) {
-                const savedToCloud = await saveTransactionToCloud(transaction);
-                if (savedToCloud) {
-                    transaction.source = 'cloud';
-                    showToast('Transação salva localmente e na nuvem!', 'success');
-                } else {
-                    showToast('Transação salva localmente (erro na nuvem)', 'warning');
-                }
-            } else {
-                showToast(`${type === 'income' ? 'Renda' : 'Despesa'} adicionada com sucesso!`, 'success');
-            }
-            
-            // Resetar formulário
-            transactionForm.reset();
-            document.getElementById('date').valueAsDate = new Date();
-            
-            // Vibrar se suportado
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-            
-            // Voltar para o dashboard
-            setTimeout(() => showSection('dashboard'), 500);
-        }
-        
-        // Excluir transação
-        async function deleteTransaction(transactionId) {
-            // Confirmação tátil
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            
-            const transaction = transactions.find(t => t.id === transactionId);
-            if (!transaction) return;
-            
-            if (confirm(`Excluir transação "${transaction.description}"?`)) {
-                transactions = transactions.filter(t => t.id !== transactionId);
-                saveTransactions();
-                updateUI();
-                
-                showToast(`Transação "${transaction.description}" excluída`, 'warning');
-            }
-        }
-        
-        // Obter nome da categoria
-        function getCategoryName(category) {
-            const map = {
-                'salary': 'Salário',
-                'investment': 'Investimentos',
-                'food': 'Alimentação',
-                'transport': 'Transporte',
-                'housing': 'Moradia',
-                'utilities': 'Contas',
-                'entertainment': 'Lazer',
-                'health': 'Saúde',
-                'education': 'Educação',
-                'other': 'Outros'
-            };
-            return map[category] || category;
-        }
-        
-        // ========== CONFIGURAÇÕES ==========
-        
-        // Dados de exemplo
-        async function handleSampleData() {
-            closeModal(confirmModal);
-            
-            if (transactions.length > 0 && !confirm('Substituir dados atuais por dados de exemplo?')) {
-                return;
-            }
-            
-            const today = new Date();
-            const oneWeekAgo = new Date(today);
-            oneWeekAgo.setDate(today.getDate() - 7);
-            const twoWeeksAgo = new Date(today);
-            twoWeeksAgo.setDate(today.getDate() - 14);
-            
-            const sampleData = [
-                {
-                    id: Date.now() + 1,
-                    description: 'Salário Mensal',
-                    amount: 3500.00,
-                    type: 'income',
-                    category: 'salary',
-                    date: today.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 2,
-                    description: 'Supermercado Semanal',
-                    amount: 450.00,
-                    type: 'expense',
-                    category: 'food',
-                    date: today.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 3,
-                    description: 'Aluguel',
-                    amount: 1200.00,
-                    type: 'expense',
-                    category: 'housing',
-                    date: today.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 4,
-                    description: 'Transporte',
-                    amount: 200.00,
-                    type: 'expense',
-                    category: 'transport',
-                    date: today.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 5,
-                    description: 'Freelance',
-                    amount: 800.00,
-                    type: 'income',
-                    category: 'salary',
-                    date: oneWeekAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 6,
-                    description: 'Restaurante',
-                    amount: 120.00,
-                    type: 'expense',
-                    category: 'food',
-                    date: oneWeekAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 7,
-                    description: 'Netflix',
-                    amount: 39.90,
-                    type: 'expense',
-                    category: 'entertainment',
-                    date: oneWeekAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 8,
-                    description: 'Consulta Médica',
-                    amount: 150.00,
-                    type: 'expense',
-                    category: 'health',
-                    date: twoWeeksAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 9,
-                    description: 'Livros',
-                    amount: 89.90,
-                    type: 'expense',
-                    category: 'education',
-                    date: twoWeeksAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                },
-                {
-                    id: Date.now() + 10,
-                    description: 'Investimento',
-                    amount: 500.00,
-                    type: 'expense',
-                    category: 'investment',
-                    date: twoWeeksAgo.toISOString().slice(0, 10),
-                    source: 'local'
-                }
-            ];
-            
-            transactions = sampleData;
-            saveTransactions();
-            updateUI();
-            
-            showToast('Dados de exemplo carregados!', 'success');
-            showSection('dashboard');
-        }
-        
-        // Limpar histórico
-        function showClearHistoryConfirm() {
-            confirmMessage.textContent = 'Tem certeza que deseja apagar TODAS as transações permanentemente? Esta ação não pode ser desfeita.';
-            
-            confirmAction.onclick = function() {
-                clearAllTransactions();
-                closeModal(confirmModal);
-            };
-            
-            openModal(confirmModal);
-        }
-        
-        function clearAllTransactions() {
-            transactions = [];
-            saveTransactions();
-            updateUI();
-            
-            showToast('Histórico apagado com sucesso!', 'warning');
-            showSection('dashboard');
-        }
-        
-        // Modo escuro
-        function toggleDarkMode() {
-            const isDark = document.body.hasAttribute('data-dark-mode');
-            
-            if (isDark) {
-                document.body.removeAttribute('data-dark-mode');
-                localStorage.setItem('financeProDarkMode', 'false');
-                darkModeToggle.checked = false;
-                showToast('Modo claro ativado', 'success');
-            } else {
-                document.body.setAttribute('data-dark-mode', 'true');
-                localStorage.setItem('financeProDarkMode', 'true');
-                darkModeToggle.checked = true;
-                showToast('Modo escuro ativado', 'success');
-            }
-        }
-        
-        function checkDarkMode() {
-            const saved = localStorage.getItem('financeProDarkMode');
-            if (saved === 'true') {
-                document.body.setAttribute('data-dark-mode', 'true');
-                darkModeToggle.checked = true;
-            }
-        }
-        
-        // ========== NAVEGAÇÃO ==========
-        
-        // Configurar gestos de swipe
-        function setupSwipeGestures() {
-            let startX = 0;
-            let startY = 0;
-            
-            document.addEventListener('touchstart', function(event) {
-                startX = event.touches[0].clientX;
-                startY = event.touches[0].clientY;
-            }, { passive: true });
-            
-            document.addEventListener('touchend', function(event) {
-                if (!startX || !startY) return;
-                
-                const endX = event.changedTouches[0].clientX;
-                const endY = event.changedTouches[0].clientY;
-                
-                const diffX = startX - endX;
-                const diffY = startY - endY;
-                
-                // Verificar se é um swipe horizontal (não vertical)
-                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
-                    if (diffX > 0) {
-                        // Swipe para a esquerda
-                        navigateNextSection();
-                    } else {
-                        // Swipe para a direita
-                        navigatePrevSection();
+            ]
+        },
+        options: getChartOptions()
+    });
+}
+
+// Opções do gráfico
+function getChartOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxRotation: 0 }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        if (value >= 1000) return 'R$' + (value/1000).toFixed(0) + 'k';
+                        return 'R$' + value;
                     }
                 }
-                
-                startX = 0;
-                startY = 0;
-            }, { passive: true });
-        }
-        
-        // Navegação entre seções
-        const sections = ['dashboard', 'add', 'transactions', 'settings'];
-        
-        function navigateNextSection() {
-            const currentIndex = sections.indexOf(currentSection);
-            const nextIndex = (currentIndex + 1) % sections.length;
-            showSection(sections[nextIndex]);
-        }
-        
-        function navigatePrevSection() {
-            const currentIndex = sections.indexOf(currentSection);
-            const prevIndex = (currentIndex - 1 + sections.length) % sections.length;
-            showSection(sections[prevIndex]);
-        }
-        
-        function showSection(section) {
-            // Atualizar seção atual
-            currentSection = section;
-            
-            // Esconder todas as seções
-            dataEntrySection.style.display = 'none';
-            transactionsSection.style.display = 'none';
-            reportsSection.style.display = 'none';
-            settingsSection.style.display = 'none';
-            
-            // Atualizar navegação ativa
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            
-            // Mostrar seção selecionada e atualizar navegação
-            switch(section) {
-                case 'dashboard':
-                    navDashboard.classList.add('active');
-                    break;
-                case 'add':
-                    dataEntrySection.style.display = 'block';
-                    navAdd.classList.add('active');
-                    // Focar no primeiro campo
-                    setTimeout(() => document.getElementById('description').focus(), 100);
-                    break;
-                case 'transactions':
-                    transactionsSection.style.display = 'block';
-                    navTransactions.classList.add('active');
-                    break;
-                case 'settings':
-                    settingsSection.style.display = 'block';
-                    navSettings.classList.add('active');
-                    // Ocultar filtros de exportação
-                    exportFilters.classList.remove('show');
-                    break;
             }
-            
-            // Scroll para o topo
-            window.scrollTo(0, 0);
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { boxWidth: 12 }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    };
+}
+
+// Adicionar transação
+async function handleAddTransaction(e) {
+    e.preventDefault();
+    
+    const description = document.getElementById('description').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+    const category = document.getElementById('category').value;
+    const date = document.getElementById('date').value;
+    
+    if (!description || isNaN(amount) || amount <= 0) {
+        showToast('Preencha todos os campos corretamente', 'error');
+        return;
+    }
+    
+    const transaction = {
+        id: Date.now() + Math.random(),
+        description,
+        amount,
+        type,
+        category,
+        date,
+        source: 'local'
+    };
+    
+    transactions.push(transaction);
+    saveLocalTransactions();
+    updateUI();
+    
+    // Salvar no Firebase se a sincronização estiver ativada
+    if (isFirebaseSyncEnabled && firebaseConnectionStatus === 'connected') {
+        const savedToFirebase = await saveTransactionToFirebase(transaction);
+        if (savedToFirebase) {
+            transaction.source = 'firebase';
+            showToast('Transação salva localmente e na nuvem!', 'success');
+        } else {
+            showToast('Transação salva localmente (erro na nuvem)', 'warning');
+        }
+    } else {
+        showToast(`${type === 'income' ? 'Renda' : 'Despesa'} adicionada com sucesso!`, 'success');
+    }
+    
+    // Resetar formulário
+    transactionForm.reset();
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // Vibrar se suportado
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+    
+    // Voltar para o dashboard
+    setTimeout(() => showSection('dashboard'), 500);
+}
+
+// Excluir transação
+async function deleteTransaction(transactionId) {
+    // Confirmação tátil
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) return;
+    
+    if (confirm(`Excluir transação "${transaction.description}"?`)) {
+        // Remover localmente
+        transactions = transactions.filter(t => t.id !== transactionId);
+        saveLocalTransactions();
+        updateUI();
+        
+        // Remover do Firebase se existir
+        if (isFirebaseSyncEnabled && transaction.source === 'firebase') {
+            await deleteTransactionFromFirebase(transactionId);
         }
         
-        // Filtrar por tipo
-        function filterByType(type) {
-            showSection('add');
-            
-            setTimeout(() => {
-                document.getElementById('type').value = type;
-                showToast(`Filtro: ${type === 'income' ? 'Renda' : 'Despesa'}`, 'info');
-            }, 100);
+        showToast(`Transação "${transaction.description}" excluída`, 'warning');
+    }
+}
+
+// Obter nome da categoria
+function getCategoryName(category) {
+    const map = {
+        'salary': 'Salário',
+        'investment': 'Investimentos',
+        'food': 'Alimentação',
+        'transport': 'Transporte',
+        'housing': 'Moradia',
+        'utilities': 'Contas',
+        'entertainment': 'Lazer',
+        'health': 'Saúde',
+        'education': 'Educação',
+        'other': 'Outros'
+    };
+    return map[category] || category;
+}
+
+// ========== CONFIGURAÇÕES ==========
+
+// Dados de exemplo
+async function handleSampleData() {
+    closeModal(confirmModal);
+    
+    if (transactions.length > 0 && !confirm('Substituir dados atuais por dados de exemplo?')) {
+        return;
+    }
+    
+    const today = new Date();
+    const oneWeekAgo = new Date(today);
+    oneWeekAgo.setDate(today.getDate() - 7);
+    const twoWeeksAgo = new Date(today);
+    twoWeeksAgo.setDate(today.getDate() - 14);
+    
+    const sampleData = [
+        {
+            id: Date.now() + 1,
+            description: 'Salário Mensal',
+            amount: 3500.00,
+            type: 'income',
+            category: 'salary',
+            date: today.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 2,
+            description: 'Supermercado Semanal',
+            amount: 450.00,
+            type: 'expense',
+            category: 'food',
+            date: today.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 3,
+            description: 'Aluguel',
+            amount: 1200.00,
+            type: 'expense',
+            category: 'housing',
+            date: today.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 4,
+            description: 'Transporte',
+            amount: 200.00,
+            type: 'expense',
+            category: 'transport',
+            date: today.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 5,
+            description: 'Freelance',
+            amount: 800.00,
+            type: 'income',
+            category: 'salary',
+            date: oneWeekAgo.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 6,
+            description: 'Restaurante',
+            amount: 120.00,
+            type: 'expense',
+            category: 'food',
+            date: oneWeekAgo.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 7,
+            description: 'Netflix',
+            amount: 39.90,
+            type: 'expense',
+            category: 'entertainment',
+            date: oneWeekAgo.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 8,
+            description: 'Consulta Médica',
+            amount: 150.00,
+            type: 'expense',
+            category: 'health',
+            date: twoWeeksAgo.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 9,
+            description: 'Livros',
+            amount: 89.90,
+            type: 'expense',
+            category: 'education',
+            date: twoWeeksAgo.toISOString().slice(0, 10),
+            source: 'local'
+        },
+        {
+            id: Date.now() + 10,
+            description: 'Investimento',
+            amount: 500.00,
+            type: 'expense',
+            category: 'investment',
+            date: twoWeeksAgo.toISOString().slice(0, 10),
+            source: 'local'
         }
+    ];
+    
+    transactions = sampleData;
+    saveLocalTransactions();
+    updateUI();
+    
+    // Sincronizar com Firebase se ativado
+    if (isFirebaseSyncEnabled && firebaseConnectionStatus === 'connected') {
+        await syncAllToFirebase();
+    }
+    
+    showToast('Dados de exemplo carregados!', 'success');
+    showSection('dashboard');
+}
+
+// Limpar histórico
+function showClearHistoryConfirm() {
+    confirmMessage.textContent = 'Tem certeza que deseja apagar TODAS as transações permanentemente? Esta ação não pode ser desfeita.';
+    
+    confirmAction.onclick = function() {
+        clearAllTransactions();
+        closeModal(confirmModal);
+    };
+    
+    openModal(confirmModal);
+}
+
+function clearAllTransactions() {
+    transactions = [];
+    saveLocalTransactions();
+    updateUI();
+    
+    showToast('Histórico apagado com sucesso!', 'warning');
+    showSection('dashboard');
+}
+
+// Modo escuro
+function toggleDarkMode() {
+    const isDark = document.body.hasAttribute('data-dark-mode');
+    
+    if (isDark) {
+        document.body.removeAttribute('data-dark-mode');
+        localStorage.setItem('financeProDarkMode', 'false');
+        darkModeToggle.checked = false;
+        showToast('Modo claro ativado', 'success');
+    } else {
+        document.body.setAttribute('data-dark-mode', 'true');
+        localStorage.setItem('financeProDarkMode', 'true');
+        darkModeToggle.checked = true;
+        showToast('Modo escuro ativado', 'success');
+    }
+}
+
+function checkDarkMode() {
+    const saved = localStorage.getItem('financeProDarkMode');
+    if (saved === 'true') {
+        document.body.setAttribute('data-dark-mode', 'true');
+        darkModeToggle.checked = true;
+    }
+}
+
+// ========== NAVEGAÇÃO ==========
+
+// Configurar gestos de swipe
+function setupSwipeGestures() {
+    let startX = 0;
+    let startY = 0;
+    
+    document.addEventListener('touchstart', function(event) {
+        startX = event.touches[0].clientX;
+        startY = event.touches[0].clientY;
+    }, { passive: true });
+    
+    document.addEventListener('touchend', function(event) {
+        if (!startX || !startY) return;
         
-        // ========== UTILITÁRIOS ==========
+        const endX = event.changedTouches[0].clientX;
+        const endY = event.changedTouches[0].clientY;
         
-        // Abrir modal
-        function openModal(modal) {
-            modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-            
-            // Vibrar levemente
-            if (navigator.vibrate) navigator.vibrate(30);
-        }
+        const diffX = startX - endX;
+        const diffY = startY - endY;
         
-        // Fechar modal
-        function closeModal(modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-        
-        // Mostrar toast
-        function showToast(message, type = 'info') {
-            toast.textContent = message;
-            toast.className = 'toast';
-            
-            // Cor baseada no tipo
-            if (type === 'success') {
-                toast.style.background = 'var(--dark)';
-            } else if (type === 'error') {
-                toast.style.background = 'var(--danger)';
-            } else if (type === 'warning') {
-                toast.style.background = 'var(--warning)';
+        // Verificar se é um swipe horizontal (não vertical)
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+            if (diffX > 0) {
+                // Swipe para a esquerda
+                navigateNextSection();
             } else {
-                toast.style.background = 'var(--secondary)';
-            }
-            
-            toast.classList.add('show');
-            
-            // Ocultar após 3 segundos
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-            
-            // Vibrar
-            if (navigator.vibrate) {
-                navigator.vibrate(type === 'error' ? [200, 100, 200] : 100);
+                // Swipe para a direita
+                navigatePrevSection();
             }
         }
         
-        // Suporte a PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function(error) {
-                    console.log('ServiceWorker registration failed:', error);
-                });
-            });
-        }
-        
-        // Detectar se está em modo standalone
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            document.body.setAttribute('data-standalone', 'true');
-        }
+        startX = 0;
+        startY = 0;
+    }, { passive: true });
+}
+
+// Navegação entre seções
+const sections = ['dashboard', 'add', 'transactions', 'settings'];
+
+function navigateNextSection() {
+    const currentIndex = sections.indexOf(currentSection);
+    const nextIndex = (currentIndex + 1) % sections.length;
+    showSection(sections[nextIndex]);
+}
+
+function navigatePrevSection() {
+    const currentIndex = sections.indexOf(currentSection);
+    const prevIndex = (currentIndex - 1 + sections.length) % sections.length;
+    showSection(sections[prevIndex]);
+}
+
+function showSection(section) {
+    // Atualizar seção atual
+    currentSection = section;
+    
+    // Esconder todas as seções
+    dataEntrySection.style.display = 'none';
+    transactionsSection.style.display = 'none';
+    reportsSection.style.display = 'none';
+    settingsSection.style.display = 'none';
+    
+    // Atualizar navegação ativa
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    
+    // Mostrar seção selecionada e atualizar navegação
+    switch(section) {
+        case 'dashboard':
+            navDashboard.classList.add('active');
+            break;
+        case 'add':
+            dataEntrySection.style.display = 'block';
+            navAdd.classList.add('active');
+            // Focar no primeiro campo
+            setTimeout(() => document.getElementById('description').focus(), 100);
+            break;
+        case 'transactions':
+            transactionsSection.style.display = 'block';
+            navTransactions.classList.add('active');
+            break;
+        case 'settings':
+            settingsSection.style.display = 'block';
+            navSettings.classList.add('active');
+            // Ocultar filtros de exportação
+            exportFilters.classList.remove('show');
+            break;
+    }
+    
+    // Scroll para o topo
+    window.scrollTo(0, 0);
+}
+
+// Filtrar por tipo
+function filterByType(type) {
+    showSection('add');
+    
+    setTimeout(() => {
+        document.getElementById('type').value = type;
+        showToast(`Filtro: ${type === 'income' ? 'Renda' : 'Despesa'}`, 'info');
+    }, 100);
+}
+
+// ========== UTILITÁRIOS ==========
+
+// Abrir modal
+function openModal(modal) {
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Vibrar levemente
+    if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// Fechar modal
+function closeModal(modal) {
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Mostrar toast
+function showToast(message, type = 'info') {
+    toast.textContent = message;
+    toast.className = 'toast';
+    
+    // Cor baseada no tipo
+    if (type === 'success') {
+        toast.style.background = 'var(--dark)';
+    } else if (type === 'error') {
+        toast.style.background = 'var(--danger)';
+    } else if (type === 'warning') {
+        toast.style.background = 'var(--warning)';
+    } else {
+        toast.style.background = 'var(--secondary)';
+    }
+    
+    toast.classList.add('show');
+    
+    // Ocultar após 3 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+    
+    // Vibrar
+    if (navigator.vibrate) {
+        navigator.vibrate(type === 'error' ? [200, 100, 200] : 100);
+    }
+}
+
+// Suporte a PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').catch(function(error) {
+            console.log('ServiceWorker registration failed:', error);
+        });
+    });
+}
+
+// Detectar se está em modo standalone
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    document.body.setAttribute('data-standalone', 'true');
+}
+
+// Tornar funções disponíveis globalmente
+window.deleteTransaction = deleteTransaction;
+window.showSection = showSection;
+
+// ========== INSTRUÇÕES PARA HABILITAR FIREBASE AUTHENTICATION ==========
+/*
+Para habilitar o Firebase Authentication:
+
+1. Acesse o Firebase Console: https://console.firebase.google.com/
+2. Selecione seu projeto "financeiro-e4c33"
+3. No menu lateral, clique em "Authentication"
+4. Clique na aba "Métodos de login"
+5. Clique em "Primeiros passos"
+6. Habilite o método "Login Anônimo"
+7. Clique em "Salvar"
+
+Se quiser usar outros métodos de login (como Email/Senha):
+1. Na mesma página "Métodos de login"
+2. Habilite "Email/Senha" ou outros métodos desejados
+3. Clique em "Salvar"
+
+Após habilitar o Authentication, recarregue o aplicativo.
+*/
     </script>
 </body>
 </html>
