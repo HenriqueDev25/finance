@@ -22,39 +22,32 @@
                Os dois últimos dígitos definem a opacidade.
                Ex: 66 = 40%, 40 = 25%, 26 = 15%, 80 = 50%
                ========================================= */
-            /* Sombras Coloridas (Tema) */
             --shadow-theme-strong: #c5a52266; /* Hover dos ícones sociais */
             --shadow-theme-medium: #c5ad2240; /* Sombra normal do botão Salvar */
             --shadow-theme-light:  #c59c2226; /* Sombra ao clicar no botão Salvar */
-
-            /* Sombras Escuras (Preto/Fundo) */
-            --shadow-card: #000000e6; /* Sombra em volta do cartão principal */
-            --shadow-img:  #00000080; /* Sombra da foto de perfil */
-            --shadow-text: #000000cc; /* Sombra do texto no rodapé */
-
-            /* Fundos com Transparência */
-            --bg-icon:    #111214bf; /* Fundo escuro dos ícones */
-            --bg-loading: #ffffff1a; /* Fundo apagado da barra de carregamento */
+            --shadow-card: #000000e6;
+            --shadow-img:  #00000080;
+            --shadow-text: #000000cc;
+            --bg-icon:    #111214bf;
+            --bg-loading: #ffffff1a;
+            
+            /* Ajuste de tamanho da logo da tela de carregamento */
+            --splash-logo-height: 80px; 
             /* ========================================= */
         }
 
         /* =========================================
            🛠️ SISTEMA DE EDIÇÃO DE ÍCONES (FÁCIL AJUSTE)
-           =========================================
-           Altere o valor numérico de "--posicao".
-           Positivo (ex: 1, 1.5) = Move para CIMA 
-           Negativo (ex: -1, -1.5) = Move para BAIXO
-           Zero (0) = Centro exato
-        ========================================= */
+           ========================================= */
         .icons-container {
-            --forca: 15px; /* Intensidade do movimento. Se quiser movimentos maiores, aumente este valor */
+            --forca: 15px; 
         }
 
-        .icons-container .icon-btn:nth-child(1) { --posicao: -1;   } /* 1º Ícone (E-mail) */
-        .icons-container .icon-btn:nth-child(2) { --posicao: -1; } /* 2º Ícone (GitHub) */
-        .icons-container .icon-btn:nth-child(3) { --posicao: -1;    } /* 3º Ícone (Instagram) - Centro */
-        .icons-container .icon-btn:nth-child(4) { --posicao: -1; } /* 4º Ícone (WhatsApp) */
-        .icons-container .icon-btn:nth-child(5) { --posicao: -1;   } /* 5º Ícone (Telefone) */
+        .icons-container .icon-btn:nth-child(1) { --posicao: -1;   } 
+        .icons-container .icon-btn:nth-child(2) { --posicao: -1; } 
+        .icons-container .icon-btn:nth-child(3) { --posicao: -1;    } 
+        .icons-container .icon-btn:nth-child(4) { --posicao: -1; } 
+        .icons-container .icon-btn:nth-child(5) { --posicao: -1;   } 
         /* ========================================= */
 
         * {
@@ -78,7 +71,18 @@
 
         /* TELA DE INTRODUÇÃO */
         .splash-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background-color: var(--bg-body); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s; }
-        .splash-icon { font-size: 60px; background: var(--theme-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px; animation: pulse 1.5s infinite ease-in-out; will-change: transform; }
+        
+        /* NOVA CONFIGURAÇÃO DA LOGO EM PNG */
+        .splash-logo { 
+            height: var(--splash-logo-height); /* Controlado na variável do :root */
+            width: auto; /* Mantém a proporção correta */
+            max-width: 80vw; /* Garante que não vai vazar a tela em celulares muito pequenos */
+            object-fit: contain; 
+            margin-bottom: 20px; 
+            animation: pulse 1.5s infinite ease-in-out; 
+            will-change: transform; 
+        }
+
         .splash-title { color: var(--theme-main); font-size: 18px; letter-spacing: 3px; text-transform: uppercase; font-weight: 600; margin-bottom: 30px; }
         .loading-container { width: 180px; height: 3px; background: var(--bg-loading); border-radius: 4px; overflow: hidden; }
         .loading-bar { height: 100%; width: 0%; background: var(--theme-gradient); animation: loadProgress 1.8s ease-out forwards; }
@@ -94,7 +98,7 @@
         .card { background-color: var(--bg-card); width: 100%; max-width: 414px; min-height: 100dvh; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0 40px var(--shadow-card); }
 
         /* IMAGEM DE FUNDO - APAGADA */
-        .bottom-image-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 45vh; background-image: url(''); background-size: cover; background-position: center; z-index: 0; opacity: 0.15; }
+        .bottom-image-bg { position: absolute; bottom: 0; left: 0; width: 100%; height: 45vh; background-image: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOt-KOTBEYATqVavwCPMgi0EXAFt-MyA7TuAvKGgm3Yw&s=10'); background-size: cover; background-position: center; z-index: 0; opacity: 0.15; }
         .bottom-image-bg::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, var(--bg-card) 0%, transparent 60%, var(--bg-card) 100%); }
 
         /* CURVAS TEMÁTICAS */
@@ -129,8 +133,6 @@
             display: flex; justify-content: center; align-items: center; 
             color: var(--theme-main); text-decoration: none; font-size: 20px; 
             background: var(--bg-icon); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); 
-            
-            /* A mágica do sistema matemático acontece aqui (o '* -1' inverte para que positivo suba e negativo desça) */
             transform: translateY(calc(var(--posicao) * var(--forca) * -1));
             transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; 
         }
@@ -138,13 +140,11 @@
         @media (hover: hover) {
             .icon-btn:hover { 
                 background: var(--theme-gradient); color: var(--bg-card); border-color: transparent; box-shadow: 0 5px 15px var(--shadow-theme-strong); 
-                /* Mantém a posição original e apenas sobrepõe um efeito de subir e dar zoom */
                 transform: translateY(calc((var(--posicao) * var(--forca) * -1) - 8px)) scale(1.1) !important;
             }
         }
 
         .icon-btn:active { 
-            /* Encolhe o ícone mantendo a posição original calculada */
             transform: translateY(calc(var(--posicao) * var(--forca) * -1)) scale(0.9) !important; 
             background: var(--theme-main); color: var(--bg-card); transition: transform 0.1s; 
         }
@@ -165,7 +165,9 @@
 <body>
 
     <div class="splash-screen" id="splashScreen">
-        <i class="fas fa-code splash-icon"></i>
+        <!-- TROQUE O LINK ABAIXO PELO CAMINHO DA SUA LOGO PNG -->
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOt-KOTBEYATqVavwCPMgi0EXAFt-MyA7TuAvKGgm3Yw&s=10" alt="Sua Logo" class="splash-logo">
+        
         <h2 class="splash-title">Iniciando...</h2>
         <div class="loading-container">
             <div class="loading-bar"></div>
@@ -176,17 +178,16 @@
         <div class="bottom-image-bg"></div>
 
         <div class="header">
-            <i class="fas fa-code logo-icon"></i>
-            <div class="header-text">Software &<br>Tecnologia</div>
+
         </div>
 
         <div class="profile-section">
             <div class="img-ring">
                 <div class="img-inner-ring">
-                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaRn0uqROzdoc39UAGhmUJdIrylWTH9iXWemyJcb0grg&s=10" alt="Pablo Henrique" class="profile-img">
+                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOt-KOTBEYATqVavwCPMgi0EXAFt-MyA7TuAvKGgm3Yw&s=10" alt="Henrique" class="profile-img">
                 </div>
             </div>
-            <h1 class="name">Pablo Henrique</h1>
+            <h1 class="name">Henrique</h1>
             <p class="title">Desenvolvedor Web e Software</p>
             <p class="subtitle">Criador do Louisiana PDV</p>
         </div>
@@ -209,7 +210,7 @@
             </a>
         </div>
 
-        <p class="footer-text">Desenvolvido por Pablo</p>
+        <p class="footer-text">Desenvolvido por Henrique</p>
     </div>
 
     <script>
